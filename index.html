@@ -1,0 +1,2167 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Habitat Arcade: Unit 6-7 Games</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;600;700;900&family=Inter:ital,wght@0,400;0,500;0,600;1,400&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --arc-dark: #0f172a;       /* Slate 900 */
+            --arc-bg: #1e293b;         /* Slate 800 */
+            --arc-primary: #0ea5e9;    /* Sky 500 */
+            --arc-primary-light: #7dd3fc; /* Sky 300 */
+            --arc-accent: #10b981;     /* Emerald 500 */
+            --arc-stone: #f8fafc;      /* Slate 50 */
+        }
+        
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: var(--arc-dark);
+            background-image: radial-gradient(circle at center, #1e293b 0%, #020617 100%);
+            color: var(--arc-stone);
+            min-height: 100vh;
+            overflow-x: hidden;
+        }
+        
+        h1, h2, h3, .font-display {
+            font-family: 'Outfit', sans-serif;
+            letter-spacing: 1px;
+        }
+
+        /* Glassmorphism & Borders */
+        .glass {
+            background: rgba(15, 23, 42, 0.6);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border: 1px solid rgba(14, 165, 233, 0.3);
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.8);
+        }
+
+        .cyan-border {
+            position: relative;
+        }
+        .cyan-border::before {
+            content: '';
+            position: absolute;
+            top: 5px; left: 5px; right: 5px; bottom: 5px;
+            border: 1px solid rgba(14, 165, 233, 0.4);
+            border-radius: inherit;
+            pointer-events: none;
+        }
+
+        /* Animations */
+        @keyframes shake {
+            0%, 100% { transform: translateX(0); }
+            25% { transform: translateX(-8px); }
+            75% { transform: translateX(8px); }
+        }
+        .animate-shake { animation: shake 0.3s ease-in-out; }
+
+        @keyframes popIn {
+            0% { transform: scale(0.95); opacity: 0; }
+            100% { transform: scale(1); opacity: 1; }
+        }
+        .animate-pop-in { animation: popIn 0.5s cubic-bezier(0.16, 1, 0.3, 1) forwards; }
+        
+        @keyframes pulse-fast {
+            0%, 100% { transform: scale(1); opacity: 1; }
+            50% { transform: scale(1.05); opacity: 0.8; }
+        }
+        .animate-pulse-fast { animation: pulse-fast 0.8s infinite; }
+
+        /* Interactive Elements */
+        .game-btn { transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1); }
+        .game-btn:hover { 
+            transform: translateY(-5px); 
+            box-shadow: 0 15px 30px -5px rgba(14, 165, 233, 0.2), 0 8px 10px -6px rgba(0, 0, 0, 0.6); 
+            border-color: rgba(14, 165, 233, 0.8);
+        }
+        .game-btn:active { transform: translateY(1px); }
+
+        .letter-tile {
+            width: 3.5rem; height: 3.5rem;
+            display: flex; align-items: center; justify-content: center;
+            font-size: 1.8rem; font-family: 'Outfit', sans-serif; font-weight: 700;
+            border-radius: 0.5rem; user-select: none; text-transform: uppercase;
+        }
+        .letter-tile.empty { background: rgba(255,255,255,0.05); border: 2px dashed rgba(255,255,255,0.2); }
+        .letter-tile.filled { 
+            background: linear-gradient(to bottom right, var(--arc-primary-light), var(--arc-primary)); 
+            color: #000; border: 2px solid #fff; box-shadow: 0 4px 0 #0284c7; 
+        }
+
+        /* 3D Flip Cards */
+        .perspective-1000 { perspective: 1000px; }
+        .transform-style-3d { transform-style: preserve-3d; transition: transform 0.6s cubic-bezier(0.4, 0, 0.2, 1); }
+        .backface-hidden { backface-visibility: hidden; }
+        .rotate-y-180 { transform: rotateY(180deg); }
+
+        /* Timer Bar */
+        .timer-bar-container { width: 100%; height: 10px; background: rgba(255, 255, 255, 0.1); border-radius: 5px; overflow: hidden; margin-bottom: 1.5rem; }
+        .timer-bar { height: 100%; background: var(--arc-primary); transition: width 1s linear, background-color 0.3s; }
+        .timer-warning { background: #f59e0b; }
+        .timer-danger { background: #ef4444; }
+
+        .view { display: none; }
+        .view.active { display: block; }
+
+        /* Millionaire specific */
+        .ladder-step.active { background-color: var(--arc-primary); color: #000; font-weight: bold; border-radius: 6px; border: 1px solid white; }
+        .ladder-step.passed { color: var(--arc-primary-light); opacity: 0.7; }
+        
+        /* Tycoon Board Specifics (6x6) */
+        .tycoon-board {
+            display: grid;
+            grid-template-columns: repeat(6, 1fr);
+            grid-template-rows: repeat(6, 1fr);
+            gap: 8px;
+            width: 100%;
+            max-width: 800px;
+            aspect-ratio: 1 / 1;
+            margin: 0 auto;
+        }
+        .tycoon-space {
+            background: rgba(248, 250, 252, 0.95);
+            border-radius: 8px;
+            border: 2px solid #475569;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+            padding: 4px;
+            position: relative;
+            box-shadow: inset 0 0 10px rgba(0,0,0,0.1);
+            transition: all 0.3s ease;
+        }
+        .tycoon-corner {
+            background: linear-gradient(135deg, #0f172a 0%, #020617 100%);
+            border-color: #0ea5e9;
+            color: #7dd3fc;
+        }
+        .tycoon-center {
+            grid-column: 2 / 6;
+            grid-row: 2 / 6;
+            background: rgba(15, 23, 42, 0.9);
+            border-radius: 16px;
+            border: 2px dashed #0ea5e9;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.7);
+        }
+        .player-token {
+            position: absolute;
+            font-size: 1.8rem;
+            width: 44px;
+            height: 44px;
+            background: rgba(255,255,255,0.9);
+            border-radius: 50%;
+            border: 2px solid #000;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.5s cubic-bezier(0.34, 1.56, 0.64, 1);
+            z-index: 50;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.6);
+        }
+        .dice-roll-anim { animation: diceSpin 0.5s ease-in-out; }
+        @keyframes diceSpin {
+            0% { transform: rotate(0deg) scale(1); }
+            50% { transform: rotate(180deg) scale(1.5); }
+            100% { transform: rotate(360deg) scale(1); }
+        }
+    </style>
+</head>
+<body class="p-4 md:p-8 flex flex-col items-center justify-center">
+
+    <!-- Ambient Background Effects -->
+    <div class="fixed top-0 left-0 w-full h-full pointer-events-none opacity-5" style="background-image: url('https://www.transparenttextures.com/patterns/stardust.png');"></div>
+
+    <div class="w-full max-w-7xl relative z-10">
+        
+        <!-- ================= DASHBOARD ================= -->
+        <div id="view-dashboard" class="view active animate-pop-in">
+            <div class="text-center mb-12">
+                <span class="border border-cyan-500/50 text-cyan-400 text-xs font-bold px-5 py-1.5 rounded-full uppercase tracking-widest shadow-lg bg-cyan-500/10">Unit 6 & 7: Homes, Colors & Perspectives</span>
+                <h1 class="text-5xl md:text-7xl mt-6 mb-4 text-transparent bg-clip-text bg-gradient-to-r from-cyan-200 via-cyan-400 to-emerald-500 font-display drop-shadow-md">Habitat Arcade</h1>
+                <p class="text-xl text-slate-300 font-light italic">Master the vocabulary of architecture, psychology of color, and critical reading.</p>
+            </div>
+
+            <div class="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+                <!-- Game 1 -->
+                <div class="glass cyan-border rounded-xl p-8 text-center flex flex-col justify-between game-btn cursor-pointer" onclick="startGame('speedrun')">
+                    <div>
+                        <div class="text-5xl mb-4 drop-shadow-md">⚡</div>
+                        <h2 class="text-2xl text-cyan-400 mb-2 font-display">Vocabulary Rush</h2>
+                        <p class="text-slate-300 text-sm mb-6">Speed run! Match the definition to the correct architectural or reading term.</p>
+                    </div>
+                    <button class="w-full bg-slate-900 hover:bg-slate-800 text-cyan-400 border border-cyan-500/30 font-bold py-3 rounded text-lg transition-all tracking-wider font-display">Start Rush</button>
+                </div>
+
+                <!-- Game 2 -->
+                <div class="glass cyan-border rounded-xl p-8 text-center flex flex-col justify-between game-btn cursor-pointer" onclick="startGame('scrambler')">
+                    <div>
+                        <div class="text-5xl mb-4 drop-shadow-md">📐</div>
+                        <h2 class="text-2xl text-cyan-400 mb-2 font-display">Decode Blueprint</h2>
+                        <p class="text-slate-300 text-sm mb-6">Hangman style. Guess the target vocabulary word letter by letter to read the plans.</p>
+                    </div>
+                    <button class="w-full bg-slate-900 hover:bg-slate-800 text-cyan-400 border border-cyan-500/30 font-bold py-3 rounded text-lg transition-all tracking-wider font-display">Decode</button>
+                </div>
+
+                <!-- Game 3 -->
+                <div class="glass cyan-border rounded-xl p-8 text-center flex flex-col justify-between game-btn cursor-pointer" onclick="startGame('restoration')">
+                    <div>
+                        <div class="text-5xl mb-4 drop-shadow-md">🔗</div>
+                        <h2 class="text-2xl text-cyan-400 mb-2 font-display">Conceptual Links</h2>
+                        <p class="text-slate-300 text-sm mb-6">Memory match! Pair the related vocabulary words to restore the floorplan.</p>
+                    </div>
+                    <button class="w-full bg-slate-900 hover:bg-slate-800 text-cyan-400 border border-cyan-500/30 font-bold py-3 rounded text-lg transition-all tracking-wider font-display">Link Ideas</button>
+                </div>
+                
+                <!-- Game 4 -->
+                <div class="glass cyan-border rounded-xl p-8 text-center flex flex-col justify-between game-btn cursor-pointer" onclick="startGame('defuse')">
+                    <div>
+                        <div class="text-5xl mb-4 drop-shadow-md">🧨</div>
+                        <h2 class="text-2xl text-cyan-400 mb-2 font-display">Defuse the Debate</h2>
+                        <p class="text-slate-300 text-sm mb-6">High-pressure context! Cut the correct wire by choosing the word that fits the reading context.</p>
+                    </div>
+                    <button class="w-full bg-slate-900 hover:bg-slate-800 text-cyan-400 border border-cyan-500/30 font-bold py-3 rounded text-lg transition-all tracking-wider font-display">Enter Room</button>
+                </div>
+
+                <!-- Game 5 -->
+                <div class="glass cyan-border rounded-xl p-8 text-center flex flex-col justify-between game-btn cursor-pointer" onclick="startGame('sentence')">
+                    <div>
+                        <div class="text-5xl mb-4 drop-shadow-md">🗣️</div>
+                        <h2 class="text-2xl text-cyan-400 mb-2 font-display">Designer's Clash</h2>
+                        <p class="text-slate-300 text-sm mb-6">Team vs Team. Create a meaningful sentence connecting exactly two target words.</p>
+                    </div>
+                    <button class="w-full bg-slate-900 hover:bg-slate-800 text-cyan-400 border border-cyan-500/30 font-bold py-3 rounded text-lg transition-all tracking-wider font-display">Take Podium</button>
+                </div>
+
+                <!-- Game 6 -->
+                <div class="glass cyan-border rounded-xl p-8 text-center flex flex-col justify-between game-btn cursor-pointer" onclick="startGame('jeopardy')">
+                    <div>
+                        <div class="text-5xl mb-4 drop-shadow-md">🏛️</div>
+                        <h2 class="text-2xl text-cyan-400 mb-2 font-display">Habitat Jeopardy</h2>
+                        <p class="text-slate-300 text-sm mb-6">The ultimate quiz show review covering Architecture, Color Psychology, and Facts.</p>
+                    </div>
+                    <button class="w-full bg-slate-900 hover:bg-slate-800 text-cyan-400 border border-cyan-500/30 font-bold py-3 rounded text-lg transition-all tracking-wider font-display">Host Trivia</button>
+                </div>
+
+                <!-- Game 7 -->
+                <div class="glass cyan-border rounded-xl p-8 text-center flex flex-col justify-between game-btn cursor-pointer lg:col-span-3" onclick="startGame('millionaire')">
+                    <div>
+                        <div class="text-5xl mb-4 drop-shadow-md">📈</div>
+                        <h2 class="text-2xl text-cyan-400 mb-2 font-display">Property Ladder</h2>
+                        <p class="text-slate-300 text-sm mb-6">Climb the ladder from Tenant to Master Architect by answering high-pressure multiple-choice questions!</p>
+                    </div>
+                    <button class="w-full bg-slate-900 hover:bg-slate-800 text-cyan-400 border border-cyan-500/30 font-bold py-3 rounded text-lg transition-all tracking-wider font-display">Start Career</button>
+                </div>
+
+                <!-- Game 8 -->
+                <div class="glass cyan-border rounded-xl p-8 text-center flex flex-col justify-between game-btn cursor-pointer lg:col-span-1" onclick="startGame('baamboozle')">
+                    <div>
+                        <div class="text-5xl mb-4 drop-shadow-md">🎉</div>
+                        <h2 class="text-2xl text-cyan-400 mb-2 font-display">Housewarming Party</h2>
+                        <p class="text-slate-300 text-sm mb-6">Baamboozle style! Pick tiles to answer questions or trigger chaotic renovation events!</p>
+                    </div>
+                    <button class="w-full bg-slate-900 hover:bg-slate-800 text-cyan-400 border border-cyan-500/30 font-bold py-3 rounded text-lg transition-all tracking-wider font-display">Open Doors</button>
+                </div>
+
+                <!-- Game 9 -->
+                <div class="glass cyan-border rounded-xl p-8 text-center flex flex-col justify-between game-btn cursor-pointer lg:col-span-2" onclick="startGame('tycoon')">
+                    <div>
+                        <div class="text-5xl mb-4 drop-shadow-md">🏙️</div>
+                        <h2 class="text-2xl text-cyan-400 mb-2 font-display">Property Tycoon</h2>
+                        <p class="text-slate-300 text-sm mb-6">Pick your custom tokens! Land on famous architectural styles, answer correctly to acquire them, and charge rent!</p>
+                    </div>
+                    <button class="w-full bg-slate-900 hover:bg-slate-800 text-cyan-400 border border-cyan-500/30 font-bold py-3 rounded text-lg transition-all tracking-wider font-display">Enter Setup</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- ================= VIEW 1: SPEED RUN ================= -->
+        <div id="view-speedrun" class="view">
+            <div class="glass cyan-border rounded-3xl p-6 md:p-10 relative max-w-4xl mx-auto">
+                <div class="flex justify-between items-center mb-6">
+                    <button onclick="showView('dashboard')" class="text-cyan-500 hover:text-cyan-300 font-bold tracking-widest text-sm uppercase">← Back</button>
+                    <div class="text-3xl font-display text-cyan-400" id="sr-score">Budget: $0</div>
+                </div>
+                <div class="timer-bar-container"><div id="sr-timer-bar" class="timer-bar" style="width: 100%;"></div></div>
+                <div class="text-center text-sm font-bold text-slate-300 mb-8 tracking-widest uppercase font-display">Seconds Remaining: <span id="sr-time-text" class="text-white text-lg">60</span></div>
+                <div id="sr-play-area" class="animate-pop-in">
+                    <div class="bg-black/40 border border-cyan-500/20 p-8 rounded-xl mb-8 text-center shadow-inner min-h-[180px] flex flex-col justify-center relative">
+                        <div class="absolute top-0 left-1/2 transform -translate-x-1/2 -translate-y-1/2 bg-cyan-600 text-black font-bold uppercase tracking-[0.2em] py-1 px-4 rounded-sm text-[10px]">Definition</div>
+                        <h3 id="sr-definition" class="text-2xl md:text-4xl font-medium text-white leading-tight font-display tracking-wide"></h3>
+                    </div>
+                    <div id="sr-options" class="grid grid-cols-1 md:grid-cols-2 gap-4"></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- ================= VIEW 2: HANGMAN ================= -->
+        <div id="view-scrambler" class="view">
+            <div class="glass cyan-border rounded-3xl p-6 md:p-10 relative max-w-4xl mx-auto">
+                <div class="flex justify-between items-center mb-6">
+                    <button onclick="showView('dashboard')" class="text-cyan-500 hover:text-cyan-300 font-bold tracking-widest text-sm uppercase">← Back</button>
+                    <div class="flex items-center gap-6">
+                        <div class="text-2xl font-display text-cyan-400" id="sc-score">Score: 0</div>
+                        <div class="text-xl font-display text-emerald-300" id="sc-progress">Plan 1 of 5</div>
+                    </div>
+                </div>
+                
+                <div id="sc-play-area" class="animate-pop-in text-center flex flex-col items-center">
+                    <div class="bg-black/40 border border-cyan-500/20 p-8 rounded-xl w-full mb-8 shadow-inner relative mt-4 min-h-[120px] flex flex-col justify-center">
+                        <span class="absolute top-0 left-1/2 transform -translate-x-1/2 -translate-y-1/2 bg-emerald-800 text-white text-[10px] font-bold uppercase tracking-[0.2em] py-1 px-4 rounded-sm">Blueprint Clue</span>
+                        <h3 id="sc-definition" class="text-xl md:text-3xl font-medium text-white leading-tight font-display mt-2"></h3>
+                    </div>
+
+                    <div class="mb-6 flex flex-col items-center">
+                        <p class="text-xs text-slate-400 uppercase tracking-widest mb-2 font-bold">Pencils Remaining</p>
+                        <div class="flex gap-2 text-2xl" id="sc-lives-display"></div>
+                    </div>
+
+                    <div class="mb-8 w-full"><div id="sc-target-slots" class="flex flex-wrap justify-center gap-3 min-h-[4rem]"></div></div>
+                    
+                    <div class="w-full max-w-3xl bg-black/30 p-4 md:p-6 rounded-2xl border border-cyan-500/10 mb-6"><div id="sc-letters-pool" class="flex flex-wrap justify-center content-start gap-1"></div></div>
+                    
+                    <div class="flex gap-4 w-full justify-center">
+                        <button onclick="scramblerHint()" class="bg-emerald-700 hover:bg-emerald-600 text-white font-bold py-3 px-8 rounded-lg transition text-sm border border-emerald-500 uppercase tracking-wider font-display">💡 Use Expert</button>
+                        <button onclick="scramblerReveal()" class="bg-rose-900 hover:bg-rose-800 text-white font-bold py-3 px-8 rounded-lg transition text-sm border border-rose-700 uppercase tracking-wider font-display">👁️ Forfeit</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- ================= VIEW 3: MEMORY MATCH ================= -->
+        <div id="view-restoration" class="view">
+            <div class="glass cyan-border rounded-3xl p-6 md:p-10 relative max-w-5xl mx-auto">
+                <div class="flex justify-between items-center mb-6">
+                    <button onclick="showView('dashboard')" class="text-cyan-500 hover:text-cyan-300 font-bold tracking-widest text-sm uppercase">← Back</button>
+                    <div class="text-3xl font-display text-cyan-400" id="res-score">Matches: 0 / 8</div>
+                </div>
+
+                <div class="bg-black/30 rounded-xl p-4 mb-8 text-center max-w-md mx-auto shadow-inner border border-cyan-500/20">
+                    <div class="text-5xl font-display text-white mb-2 tracking-widest" id="res-timer-display">01:00</div>
+                    <div class="flex justify-center items-center gap-3 mb-4">
+                        <button onclick="adjustResTimer(-10)" class="text-cyan-500 font-bold hover:text-cyan-300 transition px-2">-10s</button>
+                        <span class="text-slate-400 text-xs uppercase tracking-widest font-bold">Adjust Clock</span>
+                        <button onclick="adjustResTimer(10)" class="text-cyan-500 font-bold hover:text-cyan-300 transition px-2">+10s</button>
+                    </div>
+                    <div class="flex justify-center gap-3">
+                        <button onclick="startResTimer()" class="bg-cyan-600 hover:bg-cyan-500 text-black px-8 py-2 rounded font-bold transition font-display tracking-widest">Start Build</button>
+                        <button onclick="pauseResTimer()" class="bg-emerald-600 hover:bg-emerald-500 text-white px-8 py-2 rounded font-bold transition font-display tracking-widest">Pause</button>
+                        <button onclick="resetResTimer()" class="bg-rose-800 hover:bg-rose-700 text-white px-8 py-2 rounded font-bold transition font-display tracking-widest">Reset</button>
+                    </div>
+                </div>
+
+                <div class="text-center mb-6">
+                    <p class="text-slate-400 text-sm italic">Press Start Build to open the plans and match the related terms!</p>
+                </div>
+                <div id="res-grid" class="grid grid-cols-4 md:grid-cols-4 gap-3 md:gap-4 max-w-4xl mx-auto opacity-50 pointer-events-none transition-opacity duration-300">
+                    <!-- Cards injected by JS -->
+                </div>
+            </div>
+        </div>
+
+        <!-- ================= VIEW 4: BOMB GAME ================= -->
+        <div id="view-defuse" class="view">
+            <div class="glass cyan-border rounded-3xl p-6 md:p-10 relative max-w-3xl mx-auto text-center">
+                <div class="flex justify-between items-center mb-6">
+                    <button onclick="showView('dashboard')" class="text-cyan-500 hover:text-cyan-300 font-bold tracking-widest text-sm uppercase">← Back</button>
+                    <div class="text-2xl font-display text-rose-500" id="bomb-stage">Trap 1 of 10</div>
+                </div>
+
+                <div id="bomb-container" class="relative bg-slate-900 border-4 border-slate-700 p-8 rounded-3xl shadow-2xl mb-8 max-w-lg mx-auto">
+                    <div class="absolute -top-6 left-1/2 transform -translate-x-1/2 w-16 h-8 bg-slate-600 rounded-t-lg border-2 border-b-0 border-slate-500 flex items-center justify-center">
+                        <div class="w-10 h-2 bg-rose-500 rounded-full animate-pulse"></div>
+                    </div>
+                    
+                    <div class="bg-black border-4 border-slate-800 p-4 rounded-xl mb-6 flex justify-center items-center shadow-inner">
+                        <span id="bomb-timer" class="text-6xl font-mono font-bold text-rose-500 tracking-widest animate-pulse-fast drop-shadow-[0_0_10px_rgba(244,63,94,0.8)]">60.0</span>
+                    </div>
+
+                    <div class="bg-black/40 p-6 rounded-xl border border-cyan-500/30 mb-8 min-h-[140px] flex items-center justify-center shadow-inner">
+                        <p id="bomb-question" class="text-xl md:text-2xl font-medium text-white leading-relaxed font-display tracking-wide"></p>
+                    </div>
+
+                    <p class="text-emerald-300 text-xs font-bold uppercase tracking-widest mb-4">Select the correct word to bypass the trap:</p>
+                    <div id="bomb-wires" class="flex flex-col gap-4">
+                        <!-- Wires injected by JS -->
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- ================= VIEW 5: SENTENCE CLASH ================= -->
+        <div id="view-sentence" class="view">
+            <div class="glass cyan-border rounded-3xl p-6 md:p-10 relative max-w-5xl mx-auto">
+                <div class="flex justify-between items-center mb-6">
+                    <button onclick="showView('dashboard')" class="text-cyan-500 hover:text-cyan-300 font-bold tracking-widest text-sm uppercase">← Back</button>
+                    <div class="text-2xl font-display text-emerald-300">Designer's Clash</div>
+                </div>
+                
+                <div class="grid grid-cols-2 gap-4 md:gap-8 mb-10">
+                    <div class="bg-slate-900/80 border border-slate-700 rounded-xl p-4 text-center shadow-lg relative overflow-hidden">
+                        <div class="absolute top-0 left-0 w-full h-2 bg-emerald-500"></div>
+                        <h3 class="text-emerald-400 font-display text-2xl mb-1 mt-2">TEAM ALPHA</h3>
+                        <div class="text-6xl font-black text-white mb-4 font-display" id="team1-score">0</div>
+                        <div class="flex justify-center gap-2">
+                            <button onclick="updateTeamScore(1, -5)" class="bg-slate-800 text-white w-12 h-12 rounded border border-slate-600 hover:bg-slate-700 transition font-bold text-xl">-</button>
+                            <button onclick="updateTeamScore(1, 10)" class="bg-emerald-700 text-white w-12 h-12 rounded border border-emerald-500 hover:bg-emerald-600 transition font-bold text-xl">+</button>
+                        </div>
+                    </div>
+                    <div class="bg-slate-900/80 border border-slate-700 rounded-xl p-4 text-center shadow-lg relative overflow-hidden">
+                        <div class="absolute top-0 left-0 w-full h-2 bg-rose-600"></div>
+                        <h3 class="text-rose-400 font-display text-2xl mb-1 mt-2">TEAM OMEGA</h3>
+                        <div class="text-6xl font-black text-white mb-4 font-display" id="team2-score">0</div>
+                        <div class="flex justify-center gap-2">
+                            <button onclick="updateTeamScore(2, -5)" class="bg-slate-800 text-white w-12 h-12 rounded border border-slate-600 hover:bg-slate-700 transition font-bold text-xl">-</button>
+                            <button onclick="updateTeamScore(2, 10)" class="bg-rose-700 text-white w-12 h-12 rounded border border-rose-500 hover:bg-rose-600 transition font-bold text-xl">+</button>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="bg-black/30 border border-cyan-500/20 rounded-xl p-6 mb-8 text-center max-w-md mx-auto shadow-inner">
+                    <div class="text-6xl font-display text-white mb-4 tracking-widest" id="sn-timer-display">01:00</div>
+                    <div class="flex justify-center items-center gap-4 mb-6">
+                        <button onclick="adjustSnTimer(-10)" class="text-cyan-500 hover:text-cyan-300 text-lg font-bold px-2">-10s</button>
+                        <span class="text-slate-400 text-xs uppercase tracking-widest font-bold">Timer</span>
+                        <button onclick="adjustSnTimer(10)" class="text-cyan-500 hover:text-cyan-300 text-lg font-bold px-2">+10s</button>
+                    </div>
+                    <div class="flex justify-center gap-3">
+                        <button onclick="startSnTimer()" class="bg-emerald-700 hover:bg-emerald-600 text-white font-bold py-3 px-8 rounded uppercase tracking-wider transition font-display">Start</button>
+                        <button onclick="pauseSnTimer()" class="bg-cyan-700 hover:bg-cyan-600 text-white font-bold py-3 px-8 rounded uppercase tracking-wider transition font-display">Pause</button>
+                        <button onclick="resetSnTimer()" class="bg-slate-600 hover:bg-slate-500 text-white font-bold py-3 px-8 rounded uppercase tracking-wider transition font-display">Reset</button>
+                    </div>
+                </div>
+
+                <div class="text-center">
+                    <p class="text-emerald-300 font-bold uppercase tracking-widest text-sm mb-6">Prompt: Create a logical sentence connecting these exactly 2 words:</p>
+                    <div id="sn-words-container" class="flex flex-col md:flex-row flex-wrap justify-center gap-6 mb-8 items-center min-h-[5rem]"></div>
+                    
+                    <div class="mb-10 max-w-3xl mx-auto">
+                        <button onclick="toggleSentenceExample()" class="text-sm font-bold text-cyan-500 hover:text-white border border-cyan-500/50 px-4 py-2 rounded-full transition mb-4 font-display tracking-widest">Reveal Example</button>
+                        <div id="sn-example-box" class="hidden bg-slate-900/80 border border-cyan-500/50 p-6 rounded-xl shadow-inner">
+                            <p class="text-cyan-300 font-bold text-xs uppercase tracking-widest mb-3">Logical Context:</p>
+                            <p id="sn-example-text" class="text-white text-2xl font-display tracking-wide"></p>
+                        </div>
+                    </div>
+
+                    <button onclick="nextSentenceWords()" class="bg-gradient-to-r from-cyan-600 to-emerald-600 hover:from-cyan-500 hover:to-emerald-500 text-white font-display tracking-widest text-2xl py-5 px-12 rounded-full shadow-lg transition-all border border-cyan-400/50">Draw Words 📐</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- ================= VIEW 6: JEOPARDY ================= -->
+        <div id="view-jeopardy" class="view">
+            <div class="glass cyan-border rounded-3xl p-6 md:p-8 relative max-w-6xl mx-auto">
+                <div class="flex justify-between items-center mb-6">
+                    <button onclick="showView('dashboard')" class="text-cyan-500 hover:text-cyan-300 font-bold tracking-widest text-sm uppercase">← Back</button>
+                    <div class="text-4xl font-display text-white">Habitat Jeopardy</div>
+                    <div class="flex gap-6">
+                        <div class="text-2xl font-bold text-emerald-400 font-display">Alpha: <span id="jeop-score-a" class="text-white">0</span></div>
+                        <div class="text-2xl font-bold text-rose-400 font-display">Omega: <span id="jeop-score-b" class="text-white">0</span></div>
+                    </div>
+                </div>
+
+                <div class="bg-slate-900/80 p-4 rounded-xl border border-slate-700 shadow-md flex flex-col md:flex-row justify-between items-center gap-4 mb-6">
+                    <div class="flex items-center gap-4">
+                        <span class="text-slate-300 text-sm font-bold uppercase tracking-widest">Game Mode:</span>
+                        <button id="jeop-mode-btn" onclick="toggleJeopMode()" class="bg-emerald-700 hover:bg-emerald-600 text-white px-5 py-2 rounded-lg font-bold transition shadow-md border border-emerald-500">Exhibition (Safe)</button>
+                        <span id="jeop-mode-desc" class="text-xs text-slate-400 italic hidden md:inline">Wrong answers do not lose points.</span>
+                    </div>
+                </div>
+
+                <div class="bg-slate-900 p-3 rounded-xl border-2 border-slate-700 shadow-2xl overflow-x-auto">
+                    <div id="jeopardy-board"></div>
+                </div>
+
+                <div id="jeop-modal" class="hidden fixed inset-0 bg-black/95 flex items-center justify-center z-50 p-4 backdrop-blur-sm">
+                    <div class="bg-slate-900 p-8 md:p-12 rounded-3xl border-2 border-cyan-500 max-w-4xl w-full text-center relative shadow-2xl">
+                        
+                        <div class="flex flex-col md:flex-row justify-between items-center mb-8 border-b border-slate-700 pb-6 gap-4">
+                            <h3 id="jeop-cat-val" class="text-cyan-400 font-display text-3xl uppercase tracking-widest"></h3>
+                        </div>
+
+                        <p id="jeop-q-text" class="text-white text-3xl md:text-5xl font-display tracking-wide mb-12 leading-relaxed"></p>
+                        
+                        <div id="jeop-answer-area" class="hidden">
+                            <p class="text-emerald-400 text-sm font-bold uppercase tracking-widest mb-2">Correct Answer:</p>
+                            <p id="jeop-a-text" class="text-white text-3xl mb-12 font-medium"></p>
+                            
+                            <p class="text-slate-400 text-xs font-bold uppercase mb-4 tracking-widest">Award Points To:</p>
+                            <div class="flex flex-wrap justify-center gap-4">
+                                <div class="flex flex-col gap-2">
+                                    <button onclick="awardJeopardy(1, true)" class="bg-emerald-800 hover:bg-emerald-700 border border-emerald-500 text-white font-bold py-3 px-8 rounded-xl transition text-lg w-full font-display tracking-widest">+ Alpha</button>
+                                    <button onclick="awardJeopardy(1, false)" class="jeop-risky-btn hidden bg-emerald-900/50 hover:bg-emerald-800 border border-emerald-800 text-emerald-300 font-bold py-2 px-8 rounded-xl transition text-sm w-full font-display tracking-widest">- Alpha</button>
+                                </div>
+                                
+                                <div class="flex flex-col gap-2">
+                                    <button onclick="awardJeopardy(2, true)" class="bg-rose-800 hover:bg-rose-700 border border-rose-500 text-white font-bold py-3 px-8 rounded-xl transition text-lg w-full font-display tracking-widest">+ Omega</button>
+                                    <button onclick="awardJeopardy(2, false)" class="jeop-risky-btn hidden bg-rose-900/50 hover:bg-rose-800 border border-rose-800 text-rose-300 font-bold py-2 px-8 rounded-xl transition text-sm w-full font-display tracking-widest">- Omega</button>
+                                </div>
+                                
+                                <div class="flex flex-col gap-2 justify-start">
+                                    <button onclick="awardJeopardy(0, true)" class="bg-slate-700 hover:bg-slate-600 border border-slate-500 text-white font-bold py-3 px-8 rounded-xl transition text-lg h-full font-display tracking-widest">Nobody</button>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="flex justify-center gap-6 mt-10">
+                            <button id="jeop-reveal-btn" onclick="document.getElementById('jeop-answer-area').classList.remove('hidden'); this.classList.add('hidden');" class="bg-cyan-600 hover:bg-cyan-500 text-slate-900 font-bold py-4 px-12 rounded-xl transition text-2xl shadow-lg font-display tracking-widest flex-1 max-w-sm">Reveal Answer</button>
+                            <button onclick="cancelJeopardy()" class="bg-slate-800 hover:bg-slate-700 text-white font-bold py-4 px-8 rounded-xl transition text-sm uppercase tracking-widest border border-slate-600">Go Back / Cancel</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- ================= VIEW 7: MILLIONAIRE ================= -->
+        <div id="view-millionaire" class="view">
+            <div class="glass cyan-border rounded-3xl p-6 md:p-10 relative max-w-6xl mx-auto">
+                <div class="flex justify-between items-center mb-8">
+                    <button onclick="showView('dashboard')" class="text-cyan-500 hover:text-cyan-300 font-bold tracking-widest text-sm uppercase">← Back</button>
+                    <div class="text-3xl font-display text-cyan-400">Property Ladder</div>
+                </div>
+
+                <div class="grid lg:grid-cols-3 gap-10">
+                    <div class="lg:col-span-2 flex flex-col justify-end">
+                        <div class="bg-slate-900 border-2 border-cyan-500/50 rounded-2xl p-10 mb-8 shadow-xl relative min-h-[250px] flex items-center justify-center text-center">
+                            <div id="mil-timer-display" class="hidden absolute top-4 right-4 bg-rose-600/20 border-2 border-rose-500 text-rose-400 w-14 h-14 rounded-full flex items-center justify-center text-2xl font-mono font-bold shadow-[0_0_15px_rgba(244,63,94,0.4)]">15</div>
+                            <h3 id="mil-q-text" class="text-2xl md:text-4xl text-white font-display tracking-wide leading-relaxed"></h3>
+                        </div>
+
+                        <div class="flex justify-center gap-4 mb-6">
+                            <button id="btn-5050" onclick="use5050()" class="bg-cyan-600 hover:bg-cyan-500 text-slate-900 font-bold py-3 px-8 rounded-full border-2 border-cyan-300 shadow-lg transition-all text-sm tracking-widest uppercase font-display">50 / 50</button>
+                            <button id="btn-audience" onclick="useAudience()" class="bg-emerald-600 hover:bg-emerald-500 text-white font-bold py-3 px-8 rounded-full border-2 border-emerald-300 shadow-lg transition-all text-sm tracking-widest uppercase font-display">Consult Architects</button>
+                        </div>
+                        
+                        <div id="mil-audience-poll" class="hidden bg-emerald-900/40 border border-emerald-500/50 p-5 rounded-xl mb-6 text-white text-sm font-medium shadow-inner"></div>
+
+                        <div id="mil-options" class="grid grid-cols-1 md:grid-cols-2 gap-4"></div>
+                    </div>
+
+                    <div class="bg-slate-900 border border-slate-700 rounded-2xl p-8 shadow-inner text-right font-display text-xl tracking-wider flex flex-col justify-end gap-3" id="mil-ladder">
+                        <div class="ladder-step py-1 px-4" data-level="9">Master of Habitats</div>
+                        <div class="ladder-step py-1 px-4" data-level="8">Mayor</div>
+                        <div class="ladder-step py-1 px-4" data-level="7">Property Baron</div>
+                        <div class="ladder-step py-1 px-4" data-level="6">Real Estate Mogul</div>
+                        <div class="ladder-step py-1 px-4" data-level="5">Urban Planner</div>
+                        <div class="ladder-step py-1 px-4" data-level="4">Interior Designer</div>
+                        <div class="ladder-step py-1 px-4" data-level="3">Architect</div>
+                        <div class="ladder-step py-1 px-4" data-level="2">Homeowner</div>
+                        <div class="ladder-step py-1 px-4" data-level="1">Tenant</div>
+                        <div class="ladder-step py-1 px-4" data-level="0">Homeless</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- ================= VIEW 8: BAAMBOOZLE ================= -->
+        <div id="view-baamboozle" class="view">
+            <div class="glass cyan-border rounded-3xl p-6 md:p-8 relative max-w-6xl mx-auto">
+                <div class="flex justify-between items-center mb-6">
+                    <button onclick="showView('dashboard')" class="text-cyan-500 hover:text-cyan-300 font-bold tracking-widest text-sm uppercase">← Back</button>
+                    <div class="text-4xl font-display text-cyan-400">Housewarming Party</div>
+                    <div class="flex gap-6">
+                        <div class="text-2xl font-bold text-emerald-400 font-display">Alpha: <span id="bbz-score-a" class="text-white">0</span></div>
+                        <div class="text-2xl font-bold text-rose-400 font-display">Omega: <span id="bbz-score-b" class="text-white">0</span></div>
+                    </div>
+                </div>
+
+                <div class="bg-slate-900 p-4 rounded-xl border-2 border-slate-700 shadow-2xl">
+                    <div id="bbz-board" class="grid grid-cols-4 md:grid-cols-6 gap-3"></div>
+                </div>
+
+                <div id="bbz-modal" class="hidden fixed inset-0 bg-black/95 flex items-center justify-center z-50 p-4 backdrop-blur-sm">
+                    <div class="bg-slate-900 p-8 md:p-12 rounded-3xl border-2 border-cyan-500 max-w-4xl w-full text-center relative shadow-2xl">
+                        
+                        <div id="bbz-q-area" class="hidden">
+                            <!-- Timer inside Modal -->
+                            <div class="flex flex-col md:flex-row justify-between items-center mb-8 border-b border-slate-700 pb-4 gap-4">
+                                <h3 class="text-cyan-400 font-display text-2xl uppercase tracking-widest">Question</h3>
+                                <div class="flex items-center gap-3 bg-black/60 p-2 rounded-xl border border-slate-600">
+                                    <button onclick="adjustBbzTimer(-5)" class="text-cyan-500 hover:text-cyan-300 font-bold px-2 text-lg">-5s</button>
+                                    <span id="bbz-timer-display" class="text-3xl font-mono text-rose-500 font-bold w-16 text-center">30</span>
+                                    <button onclick="adjustBbzTimer(5)" class="text-cyan-500 hover:text-cyan-300 font-bold px-2 text-lg">+5s</button>
+                                    <div class="border-l border-slate-600 pl-3 flex gap-2">
+                                        <button onclick="pauseBbzTimer()" id="bbz-pause-btn" class="bg-slate-700 hover:bg-slate-600 text-white px-3 py-1 rounded text-sm font-bold transition">Pause</button>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <p id="bbz-q-text" class="text-white text-4xl md:text-5xl font-display tracking-wide mb-12 leading-relaxed"></p>
+                            
+                            <div id="bbz-answer-area" class="hidden">
+                                <p class="text-cyan-400 text-sm font-bold uppercase tracking-widest mb-2">Answer:</p>
+                                <p id="bbz-a-text" class="text-white text-3xl mb-12 font-medium"></p>
+                                
+                                <p class="text-slate-400 text-xs font-bold uppercase mb-4 tracking-widest">Did they get it right?</p>
+                                <div class="flex justify-center gap-4">
+                                    <button onclick="resolveBbz(1)" class="bg-emerald-800 hover:bg-emerald-700 border border-emerald-500 text-white font-bold py-4 px-10 rounded-xl transition text-xl shadow-md font-display tracking-widest">+25 Alpha</button>
+                                    <button onclick="resolveBbz(2)" class="bg-rose-800 hover:bg-rose-700 border border-rose-500 text-white font-bold py-4 px-10 rounded-xl transition text-xl shadow-md font-display tracking-widest">+25 Omega</button>
+                                    <button onclick="resolveBbz(0)" class="bg-slate-700 hover:bg-slate-600 border border-slate-500 text-white font-bold py-4 px-10 rounded-xl transition text-xl shadow-md font-display tracking-widest">Incorrect</button>
+                                </div>
+                            </div>
+
+                            <div class="flex justify-center gap-6 mt-10">
+                                <button id="bbz-reveal-btn" onclick="document.getElementById('bbz-answer-area').classList.remove('hidden'); this.classList.add('hidden'); pauseBbzTimer();" class="bg-cyan-600 hover:bg-cyan-500 text-slate-900 font-bold py-4 px-12 rounded-xl transition text-2xl shadow-lg font-display tracking-widest flex-1 max-w-sm">Reveal Answer</button>
+                                <button onclick="cancelBbz()" class="bg-slate-800 hover:bg-slate-700 text-white font-bold py-4 px-8 rounded-xl transition text-sm uppercase tracking-widest border border-slate-600">Cancel</button>
+                            </div>
+                        </div>
+
+                        <div id="bbz-p-area" class="hidden">
+                            <h3 id="bbz-p-title" class="text-5xl md:text-6xl font-display text-cyan-400 mb-8 uppercase tracking-widest animate-pulse"></h3>
+                            <p id="bbz-p-desc" class="text-white text-3xl mb-16 font-medium italic"></p>
+                            
+                            <p class="text-slate-300 text-sm font-bold uppercase mb-6 tracking-widest">Which team picked this tile?</p>
+                            <div class="flex justify-center gap-6">
+                                <button onclick="resolveBbz(1)" class="bg-emerald-800 hover:bg-emerald-700 border border-emerald-400 text-white font-bold py-5 px-12 rounded-xl transition text-2xl shadow-[0_0_20px_rgba(16,185,129,0.6)] font-display tracking-widest">Apply to Alpha</button>
+                                <button onclick="resolveBbz(2)" class="bg-rose-800 hover:bg-rose-700 border border-rose-400 text-white font-bold py-5 px-12 rounded-xl transition text-2xl shadow-[0_0_20px_rgba(244,63,94,0.6)] font-display tracking-widest">Apply to Omega</button>
+                            </div>
+                        </div>
+
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- ================= VIEW 9.0: TYCOON SETUP ================= -->
+        <div id="view-tycoon-setup" class="view text-center">
+            <div class="glass cyan-border rounded-3xl p-10 max-w-4xl mx-auto animate-pop-in">
+                <button onclick="showView('dashboard')" class="text-cyan-500 hover:text-cyan-300 font-bold tracking-widest text-sm uppercase absolute top-6 left-6">← Back</button>
+                <h2 class="text-4xl font-display text-cyan-400 mb-2 mt-4">Token Selection</h2>
+                <p class="text-slate-300 mb-8">Choose your tokens before entering the Property Board.</p>
+                <div class="grid md:grid-cols-2 gap-8 mb-10">
+                    <div class="bg-emerald-900/40 p-6 rounded-2xl border-2 border-emerald-500/50">
+                        <h3 class="text-emerald-400 font-display text-2xl mb-4">Team Alpha</h3>
+                        <div class="text-7xl mb-4 h-24 flex items-center justify-center filter drop-shadow-lg" id="setup-token-a">🏠</div>
+                        <div class="flex flex-wrap justify-center gap-2 max-w-xs mx-auto" id="setup-grid-a"></div>
+                    </div>
+                    <div class="bg-rose-900/40 p-6 rounded-2xl border-2 border-rose-500/50">
+                        <h3 class="text-rose-400 font-display text-2xl mb-4">Team Omega</h3>
+                        <div class="text-7xl mb-4 h-24 flex items-center justify-center filter drop-shadow-lg" id="setup-token-b">🏢</div>
+                        <div class="flex flex-wrap justify-center gap-2 max-w-xs mx-auto" id="setup-grid-b"></div>
+                    </div>
+                </div>
+                <button onclick="confirmTycoonSetup()" class="bg-gradient-to-r from-cyan-600 to-cyan-500 hover:from-cyan-500 hover:to-cyan-400 text-slate-900 font-bold text-2xl py-4 px-12 rounded-full shadow-lg hover:scale-105 transition border border-cyan-300 font-display tracking-widest">Enter Market</button>
+            </div>
+        </div>
+
+        <!-- ================= VIEW 9.1: TYCOON (6x6) ================= -->
+        <div id="view-tycoon" class="view">
+            <div class="glass cyan-border rounded-3xl p-6 md:p-10 relative max-w-6xl mx-auto">
+                <div class="flex justify-between items-center mb-6">
+                    <button onclick="showView('dashboard')" class="text-cyan-500 hover:text-cyan-300 font-bold tracking-widest text-sm uppercase flex items-center gap-2">← Back to Hub</button>
+                    <div class="text-3xl font-display text-cyan-400">Property Tycoon</div>
+                </div>
+
+                <div class="grid lg:grid-cols-4 gap-8">
+                    <!-- Left: Player Stats -->
+                    <div class="lg:col-span-1 space-y-6">
+                        <div class="bg-emerald-900/60 border-2 border-emerald-500/50 p-6 rounded-2xl shadow-lg relative overflow-hidden transition-all" id="tyc-panel-0">
+                            <div class="absolute top-0 left-0 w-2 h-full bg-emerald-500"></div>
+                            <h3 class="text-emerald-300 font-display text-xl mb-1 uppercase tracking-widest flex items-center justify-between">
+                                <span>Team Alpha</span>
+                                <div id="tyc-p0-icon" class="bg-black/30 rounded-full w-10 h-10 flex items-center justify-center border border-emerald-400/50 shadow-inner text-xl">🏠</div>
+                            </h3>
+                            <div class="text-4xl font-black text-white font-mono mt-2">$<span id="tyc-score-0">1500</span></div>
+                        </div>
+                        
+                        <div class="bg-rose-900/60 border-2 border-rose-500/50 p-6 rounded-2xl shadow-lg relative overflow-hidden opacity-50 transition-all" id="tyc-panel-1">
+                            <div class="absolute top-0 left-0 w-2 h-full bg-rose-500"></div>
+                            <h3 class="text-rose-300 font-display text-xl mb-1 uppercase tracking-widest flex items-center justify-between">
+                                <span>Team Omega</span>
+                                <div id="tyc-p1-icon" class="bg-black/30 rounded-full w-10 h-10 flex items-center justify-center border border-rose-400/50 shadow-inner text-xl">🏢</div>
+                            </h3>
+                            <div class="text-4xl font-black text-white font-mono mt-2">$<span id="tyc-score-1">1500</span></div>
+                        </div>
+
+                        <div class="bg-slate-800/80 p-4 rounded-xl border border-slate-600 text-sm text-slate-300 shadow-inner">
+                            <h4 class="font-bold text-cyan-400 mb-2 uppercase tracking-widest border-b border-slate-700 pb-1">Market Rules</h4>
+                            <ul class="list-disc pl-4 space-y-1">
+                                <li><strong>Unowned Property:</strong> Answer correctly to acquire. Values increase!</li>
+                                <li><strong>Owned Property:</strong> Land here and pay rent to the owner.</li>
+                                <li><strong>Chance:</strong> Draw a color psychology card.</li>
+                                <li>Go bankrupt? You are evicted!</li>
+                            </ul>
+                        </div>
+                    </div>
+
+                    <!-- Right: The Board -->
+                    <div class="lg:col-span-3 relative">
+                        <div class="tycoon-board bg-white/5 p-2 rounded-2xl backdrop-blur-md border border-white/10 shadow-2xl" id="tycoon-board-grid">
+                            <!-- Spaces injected by JS -->
+                            
+                            <!-- Center Area -->
+                            <div class="tycoon-center text-center relative z-0">
+                                <h3 class="text-3xl font-display text-white mb-2 tracking-widest uppercase drop-shadow-md" id="tyc-turn-indicator">Alpha's Turn</h3>
+                                <p class="text-slate-300 text-sm mb-6 italic" id="tyc-status-text">Ready to move.</p>
+                                
+                                <div class="bg-slate-100 text-slate-900 w-24 h-24 rounded-3xl flex items-center justify-center text-6xl font-black shadow-[0_10px_0_#475569] mb-8 border-4 border-slate-300" id="tyc-dice-display">
+                                    🎲
+                                </div>
+
+                                <button onclick="rollTycoonDice()" id="tyc-roll-btn" class="bg-gradient-to-r from-cyan-500 to-cyan-600 hover:from-cyan-400 hover:to-cyan-500 text-slate-900 font-bold py-4 px-10 rounded-full text-2xl shadow-lg transition-transform transform hover:-translate-y-1 border border-cyan-300 tracking-widest font-display">
+                                    ROLL DICE
+                                </button>
+                            </div>
+
+                            <!-- Player Tokens -->
+                            <div id="token-0" class="player-token">🏠</div>
+                            <div id="token-1" class="player-token">🏢</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Event/Quiz Modal -->
+                <div id="tyc-modal" class="hidden fixed inset-0 bg-black/95 flex items-center justify-center z-50 p-4 backdrop-blur-sm">
+                    <div class="bg-slate-900 p-8 md:p-12 rounded-3xl border-4 border-cyan-500 max-w-2xl w-full text-center relative shadow-2xl">
+                        <div id="tyc-modal-header" class="text-cyan-400 font-bold uppercase tracking-[0.2em] mb-4 text-sm bg-black/50 py-2 rounded-lg"></div>
+                        <h3 id="tyc-modal-title" class="text-3xl md:text-4xl font-display text-white mb-6"></h3>
+                        <p id="tyc-modal-desc" class="text-xl text-slate-200 mb-8 font-serif leading-relaxed"></p>
+                        
+                        <div id="tyc-options-area" class="grid gap-4 mb-6"></div>
+                        
+                        <div id="tyc-action-area" class="hidden">
+                            <!-- Action buttons injected here -->
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+        </div>
+
+        <!-- ================= RESULTS VIEW ================= -->
+        <div id="view-results" class="view text-center">
+            <div class="glass cyan-border rounded-3xl p-12 max-w-2xl mx-auto animate-pop-in">
+                <div class="text-8xl mb-8 drop-shadow-lg" id="results-icon">🏁</div>
+                <h2 class="text-5xl font-display text-cyan-400 mb-4 drop-shadow-md">Game Over!</h2>
+                
+                <div id="results-message" class="text-2xl text-slate-200 mb-10 font-serif italic"></div>
+                
+                <button onclick="showView('dashboard')" class="w-full bg-slate-800 hover:bg-slate-700 border border-cyan-500/50 text-cyan-400 font-bold py-5 rounded-xl text-xl transition-all tracking-widest uppercase font-display shadow-lg">Back to Hub</button>
+            </div>
+        </div>
+
+    </div>
+
+    <!-- SCRIPTS -->
+    <script>
+        // ==========================================
+        // UNIT 6 & 7 VOCAB DATA BANK (Homes, Color, Fact/Opinion)
+        // ==========================================
+        const vocabData = [
+            { word: "Sanctuary", def: "A place of refuge, safety, or absolute comfort." },
+            { word: "Permanent", def: "Lasting or intended to last indefinitely without changing." },
+            { word: "Cozy", def: "Giving a feeling of comfort, warmth, and relaxation." },
+            { word: "Cramped", def: "Uncomfortably small or restricted in space." },
+            { word: "Hoard", def: "To accumulate and hide or store away things unnecessarily." },
+            { word: "Terraced", def: "Houses built in a continuous row sharing side walls." },
+            { word: "Belonging", def: "A feeling of affinity or deep connection to a place or group." },
+            { word: "Architecture", def: "The art or practice of designing and constructing buildings." },
+            { word: "Versatile", def: "Able to adapt or be adapted to many different functions." },
+            { word: "Transparent", def: "Allowing light to pass through; completely clear or honest." },
+            { word: "Objective", def: "Based purely on facts rather than personal feelings or opinions." },
+            { word: "Subjective", def: "Based on or influenced by personal feelings, tastes, or opinions." },
+            { word: "Vibrant", def: "Full of energy and enthusiasm; bright and striking (colors)." },
+            { word: "Priority", def: "A thing that is regarded as more important than another." },
+            { word: "Evidence", def: "The available body of facts or information indicating if something is true." },
+            { word: "Transition", def: "The process of changing from one state or condition to another." },
+            { word: "Significance", def: "The quality of being worthy of attention; importance." },
+            { word: "Predict", def: "To say or estimate that a specified thing will happen in the future." },
+            { word: "Isolate", def: "To remain alone or apart from others; to separate." },
+            { word: "Environment", def: "The surroundings or conditions in which a person lives or operates." },
+            { word: "Security", def: "The state of being free from danger or threat." },
+            { word: "Shelter", def: "A place giving temporary protection from bad weather or danger." },
+            { word: "Modify", def: "Make partial or minor changes to something to improve it." },
+            { word: "Adaptable", def: "Able to adjust to new conditions." },
+            { word: "Verify", def: "Make sure or demonstrate that something is true, accurate, or justified." }
+        ];
+
+        const memoryPairsData = [
+            { id: 1, text: "Objective" }, { id: 1, text: "Fact" },
+            { id: 2, text: "Subjective" }, { id: 2, text: "Opinion" },
+            { id: 3, text: "Cramped" }, { id: 3, text: "Tiny" },
+            { id: 4, text: "Cozy" }, { id: 4, text: "Warm" },
+            { id: 5, text: "Permanent" }, { id: 5, text: "Lasting" },
+            { id: 6, text: "Sanctuary" }, { id: 6, text: "Safeplace" },
+            { id: 7, text: "Vibrant" }, { id: 7, text: "Bright" },
+            { id: 8, text: "Hoard" }, { id: 8, text: "Collect" }
+        ];
+
+        const bombQuestions = [
+            { q: "The tiny, ____ houses were built right next to the noisy factories.", a: "cramped", w1: "versatile", w2: "subjective" },
+            { q: "Wood makes Ryokans cool in summer, meaning the material is very ____ to the environment.", a: "adaptable", w1: "cramped", w2: "transparent" },
+            { q: "People need a sense of ____ to feel truly at home at the end of the day.", a: "belonging", w1: "architecture", w2: "priority" },
+            { q: "Red is a very ____ color that can actually increase your heart rate.", a: "vibrant", w1: "objective", w2: "terraced" },
+            { q: "We can easily ____ this statement by checking historical scientific records.", a: "verify", w1: "isolate", w2: "hoard" },
+            { q: "The large communal table was a highly ____ piece of furniture in the coffeehouse.", a: "versatile", w1: "subjective", w2: "permanent" },
+            { q: "Thick wooden doors were used to ____ the guests from the noisy hallways.", a: "isolate", w1: "modify", w2: "predict" },
+            { q: "Since they had absolutely no space, poor families couldn't ____ extra decorative items.", a: "hoard", w1: "shelter", w2: "transition" },
+            { q: "Because it relies entirely on verifiable truth, a fact is always ____.", a: "objective", w1: "cozy", w2: "subjective" },
+            { q: "The rich Victorian family's stone house was built as a ____ structure to last generations.", a: "permanent", w1: "cramped", w2: "adaptable" }
+        ];
+
+        const sentenceGroups = [
+            { words: ["Sanctuary", "Security"], example: "My bedroom is a peaceful sanctuary that gives me a feeling of security." },
+            { words: ["Architecture", "Versatile"], example: "Modern architecture often uses versatile materials like glass and steel." },
+            { words: ["Objective", "Evidence"], example: "You cannot prove a fact without objective evidence." },
+            { words: ["Subjective", "Vibrant"], example: "Whether a vibrant color like neon pink looks good is entirely subjective." },
+            { words: ["Cramped", "Hoard"], example: "Their cramped apartment became even smaller because they liked to hoard old newspapers." },
+            { words: ["Terraced", "Environment"], example: "The long row of terraced houses created a very close-knit neighborhood environment." },
+            { words: ["Belonging", "Cozy"], example: "Sitting by the cozy fireplace gave the family a deep sense of belonging." },
+            { words: ["Permanent", "Transition"], example: "Moving to a new city was a difficult transition before they found a permanent home." },
+            { words: ["Priority", "Significance"], example: "Because health is a priority, understanding nutrition has great significance." },
+            { words: ["Isolate", "Shelter"], example: "During the storm, they had to isolate themselves inside the underground shelter." }
+        ];
+
+        const jeopardyCategories = [
+            {
+                name: "The Home",
+                questions: [
+                    { q: "A place of absolute comfort and safety.", a: "What is a Sanctuary?" },
+                    { q: "Giving a feeling of warmth and relaxation.", a: "What is Cozy?" },
+                    { q: "Uncomfortably small or restricted in space.", a: "What is Cramped?" },
+                    { q: "Houses built in a continuous row sharing side walls.", a: "What is Terraced?" }
+                ]
+            },
+            {
+                name: "Design & Space",
+                questions: [
+                    { q: "The practice of designing and constructing buildings.", a: "What is Architecture?" },
+                    { q: "Able to adapt to many different functions.", a: "What is Versatile?" },
+                    { q: "Lasting or intended to last indefinitely.", a: "What is Permanent?" },
+                    { q: "Able to adjust to new conditions easily.", a: "What is Adaptable?" }
+                ]
+            },
+            {
+                name: "Fact or Opinion",
+                questions: [
+                    { q: "Based purely on facts rather than feelings.", a: "What is Objective?" },
+                    { q: "Based on personal tastes or opinions.", a: "What is Subjective?" },
+                    { q: "To make sure or demonstrate that something is true.", a: "What is to Verify?" },
+                    { q: "The available body of facts indicating if something is true.", a: "What is Evidence?" }
+                ]
+            },
+            {
+                name: "Colors & Life",
+                questions: [
+                    { q: "Full of energy; bright and striking.", a: "What is Vibrant?" },
+                    { q: "The surroundings in which a person lives.", a: "What is the Environment?" },
+                    { q: "The process of changing from one state to another.", a: "What is a Transition?" },
+                    { q: "To estimate that a specified thing will happen in the future.", a: "What is to Predict?" }
+                ]
+            },
+            {
+                name: "Human Needs",
+                questions: [
+                    { q: "A feeling of deep connection to a place.", a: "What is Belonging?" },
+                    { q: "The state of being free from danger or threat.", a: "What is Security?" },
+                    { q: "A place giving temporary protection from bad weather.", a: "What is a Shelter?" },
+                    { q: "A thing regarded as more important than another.", a: "What is a Priority?" }
+                ]
+            }
+        ];
+
+        const mogulQuestions = [
+            { q: "Which word means to accumulate and hide things unnecessarily?", options: ["Hoard", "Verify", "Predict", "Isolate"], ans: 0 },
+            { q: "If something is 'Permanent', it is...", options: ["Lasting indefinitely", "Changing constantly", "Very cramped", "Bright and colorful"], ans: 0 },
+            { q: "What is a 'Sanctuary'?", options: ["A noisy street", "A dangerous animal", "A place of refuge and safety", "A type of evidence"], ans: 2 },
+            { q: "Which word describes something that is completely clear or honest?", options: ["Subjective", "Transparent", "Terraced", "Cozy"], ans: 1 },
+            { q: "To 'Isolate' means to...", options: ["Steal something", "Remain alone or apart from others", "Build a home", "Predict the weather"], ans: 1 },
+            { q: "A 'Transition' is...", options: ["A type of building", "A disagreement", "The process of changing from one state to another", "A fact"], ans: 2 },
+            { q: "What does 'Subjective' mean?", options: ["A result of an action", "Based on personal feelings or opinions", "Completely factual", "Very small"], ans: 1 },
+            { q: "To 'Verify' means to...", options: ["Make sure something is true or accurate", "Take goods in war", "Design a house", "Change your mind"], ans: 0 },
+            { q: "If a color is 'Vibrant', it is...", options: ["Dull and boring", "Bright and striking", "A personal opinion", "A physical shelter"], ans: 1 },
+            { q: "If a truth is 'Objective', it is...", options: ["Based on facts only", "Based on emotion", "Completely transparent", "Very easy to predict"], ans: 0 },
+            { q: "What does 'Significance' mean?", options: ["The quality of being important", "A result of an action", "A feeling of guilt", "An old building"], ans: 0 },
+            { q: "To 'Modify' something is to...", options: ["Destroy it", "Make minor changes to improve it", "Hide it away", "Paint it red"], ans: 1 },
+            { q: "Which word means uncomfortably small or restricted?", options: ["Cozy", "Cramped", "Versatile", "Adaptable"], ans: 1 },
+            { q: "A 'Priority' is...", options: ["Something regarded as more important", "A type of bias", "A long row of houses", "A piece of evidence"], ans: 0 },
+            { q: "If furniture is 'Versatile', it is...", options: ["Broken", "Able to adapt to many different functions", "Very heavy", "Made of glass"], ans: 1 }
+        ];
+
+        const baamData = [
+            { type: 'q', q: "A feeling of affinity or deep connection to a place.", a: "Belonging" },
+            { type: 'q', q: "A thing regarded as more important than another.", a: "Priority" },
+            { type: 'q', q: "The state of being free from danger.", a: "Security" },
+            { type: 'q', q: "Based purely on facts rather than feelings.", a: "Objective" },
+            { type: 'q', q: "Based on or influenced by personal opinions.", a: "Subjective" },
+            { type: 'q', q: "Full of energy and enthusiasm; bright (colors).", a: "Vibrant" },
+            { type: 'q', q: "Uncomfortably small or restricted in space.", a: "Cramped" },
+            { type: 'q', q: "To accumulate and hide or store away things.", a: "Hoard" },
+            { type: 'q', q: "Houses built in a continuous row.", a: "Terraced" },
+            { type: 'q', q: "Able to adapt to many different functions.", a: "Versatile" },
+            { type: 'q', q: "Allowing light to pass through; clear.", a: "Transparent" },
+            { type: 'q', q: "The process of changing from one state to another.", a: "Transition" },
+            { type: 'q', q: "To say that a specified thing will happen in the future.", a: "Predict" },
+            { type: 'q', q: "To remain alone or apart from others.", a: "Isolate" },
+            { type: 'q', q: "The surroundings in which a person lives.", a: "Environment" },
+            { type: 'q', q: "Make minor changes to improve something.", a: "Modify" },
+            { type: 'q', q: "Make sure or demonstrate that something is true.", a: "Verify" },
+            { type: 'q', q: "A place of refuge, safety, or absolute comfort.", a: "Sanctuary" },
+
+            // Power-ups
+            { type: 'p', action: 'gain', amount: 50, title: '🌟 Renovation Success!', desc: 'Your new living room looks amazing. Gain 50 points!' },
+            { type: 'p', action: 'lose', amount: 25, title: '🚨 Plumbing Disaster!', desc: 'A pipe burst in the bathroom. Lose 25 points.' },
+            { type: 'p', action: 'steal', amount: 50, title: '🕵️ Stole a Sofa!', desc: 'You took the other team\'s cozy furniture. Steal up to 50 points.' },
+            { type: 'p', action: 'swap', amount: 0, title: '🔄 Moving Day!', desc: 'You swapped houses! Swap scores with the other team.' },
+            { type: 'p', action: 'bankrupt', amount: 0, title: '🔥 Eviction Notice!', desc: 'You lost the house. Your score drops to 0.' },
+            { type: 'p', action: 'gain', amount: 100, title: '👑 Architectural Masterpiece!', desc: 'You won a design award! Gain 100 points!' }
+        ];
+
+        const tycoonSpaces = [
+            { id: 0, name: "FRONT DOOR", type: "corner", icon: "🚪", col: 1, row: 1 },
+            
+            { id: 1, name: "Cozy Cabin", type: "prop", color: "#86efac", icon: "🔥", col: 2, row: 1, owner: null, cost: 100, rent: 50 },
+            { id: 2, name: "Color Palette", type: "chance", icon: "🎨", col: 3, row: 1 },
+            { id: 3, name: "Beach House", type: "prop", color: "#86efac", icon: "🌊", col: 4, row: 1, owner: null, cost: 150, rent: 75 },
+            { id: 4, name: "Treehouse", type: "prop", color: "#86efac", icon: "🌳", col: 5, row: 1, owner: null, cost: 200, rent: 100 },
+            
+            { id: 5, name: "LEAKY ROOF", type: "penalty", icon: "💧", col: 6, row: 1 },
+            
+            { id: 6, name: "Terraced Row", type: "prop", color: "#93c5fd", icon: "🏘️", col: 6, row: 2, owner: null, cost: 250, rent: 125 },
+            { id: 7, name: "Property Tax", type: "tax", icon: "📜", col: 6, row: 3 },
+            { id: 8, name: "Victorian Manor", type: "prop", color: "#93c5fd", icon: "🏰", col: 6, row: 4, owner: null, cost: 300, rent: 150 },
+            { id: 9, name: "Color Palette", type: "chance", icon: "🎨", col: 6, row: 5 },
+            
+            { id: 10, name: "INHERITANCE", type: "bonus", icon: "💰", col: 6, row: 6 },
+            
+            { id: 11, name: "Coffeehouse", type: "prop", color: "#fcd34d", icon: "☕", col: 5, row: 6, owner: null, cost: 350, rent: 175 },
+            { id: 12, name: "Security Costs", type: "tax", icon: "🔒", col: 4, row: 6 },
+            { id: 13, name: "Japanese Ryokan", type: "prop", color: "#fcd34d", icon: "🏯", col: 3, row: 6, owner: null, cost: 400, rent: 200 },
+            { id: 14, name: "Ottoman House", type: "prop", color: "#fcd34d", icon: "🏡", col: 2, row: 6, owner: null, cost: 450, rent: 225 },
+            
+            { id: 15, name: "EVICTION", type: "penalty", icon: "🚫", col: 1, row: 6 },
+            
+            { id: 16, name: "Studio Flat", type: "prop", color: "#d8b4fe", icon: "🛏️", col: 1, row: 5, owner: null, cost: 500, rent: 250 },
+            { id: 17, name: "Color Palette", type: "chance", icon: "🎨", col: 1, row: 4 },
+            { id: 18, name: "Penthouse", type: "prop", color: "#d8b4fe", icon: "🏙️", col: 1, row: 3, owner: null, cost: 600, rent: 300 },
+            { id: 19, name: "HOA Fees", type: "tax", icon: "💸", col: 1, row: 2 }
+        ];
+
+        const tycoonQuiz = [
+            { q: "What does 'Sanctuary' mean?", opts: ["A place of safety", "A dangerous place", "A subjective opinion"], a: 0 },
+            { q: "If a house is 'Permanent', it is...", opts: ["Temporary", "Lasting indefinitely", "Very small"], a: 1 },
+            { q: "A 'Terraced' house is...", opts: ["A standalone mansion", "Built in a continuous row", "A house made of glass"], a: 1 },
+            { q: "What does 'Hoard' mean?", opts: ["To throw away", "To accumulate and hide things", "To verify facts"], a: 1 },
+            { q: "To 'Isolate' means to...", opts: ["Remain apart from others", "Grapple with an opponent", "Design a building"], a: 0 },
+            { q: "Which word means 'able to adapt to many functions'?", opts: ["Versatile", "Subjective", "Cramped"], a: 0 },
+            { q: "A 'Transition' is...", opts: ["The person taking the tickets", "The process of changing states", "A fact"], a: 1 },
+            { q: "What does it mean to be 'Objective'?", opts: ["Open and honest", "Based on facts rather than feelings", "To pay a fine"], a: 1 },
+            { q: "An 'Environment' is...", opts: ["The surroundings in which a person lives", "A type of dinosaur", "A natural rock"], a: 0 },
+            { q: "What does 'Vibrant' mean?", opts: ["Bright and striking", "Secret and hidden", "Very slow"], a: 0 }
+        ];
+
+        const tycoonChance = [
+            { title: "Design Award!", desc: "Your latest Interior Design was highly successful. Collect $200 in commissions.", change: 200 },
+            { title: "Window Broken!", desc: "A neighbor broke a window playing baseball. Pay $150 in repair fees.", change: -150 },
+            { title: "Bank Error!", desc: "The bank made an error in your favor. Collect $250!", change: 250 },
+            { title: "Plumbing Bill!", desc: "The sink is leaking again. Pay $100 to the plumber.", change: -100 },
+            { title: "Airbnb Success", desc: "You rented out your spare room online. Collect $150.", change: 150 },
+            { title: "Termite Damage", desc: "Bugs are eating the wood framing. Pay $200 for exterminators.", change: -200 }
+        ];
+
+        // ==========================================
+        // GLOBAL STATE & UTILS
+        // ==========================================
+        let currentGame = '';
+        let score = 0;
+        let globalTimerInterval;
+
+        function shuffleArray(array) {
+            let curId = array.length;
+            while (0 !== curId) {
+                let randId = Math.floor(Math.random() * curId);
+                curId -= 1;
+                let tmp = array[curId]; array[curId] = array[randId]; array[randId] = tmp;
+            }
+            return array;
+        }
+
+        function showView(viewId) {
+            document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
+            document.getElementById('view-' + viewId).classList.add('active');
+            clearInterval(globalTimerInterval); 
+        }
+
+        function startGame(type) {
+            currentGame = type;
+            score = 0;
+            if (type === 'speedrun') initSpeedRun();
+            if (type === 'scrambler') initHangman();
+            if (type === 'sentence') initSentenceGame();
+            if (type === 'jeopardy') initJeopardy();
+            if (type === 'restoration') initRestoration();
+            if (type === 'defuse') initDefuse();
+            if (type === 'millionaire') initMillionaire();
+            if (type === 'baamboozle') initBaamboozle();
+            if (type === 'tycoon') showTycoonSetup();
+        }
+
+        function endGame(message, gifHtml = '') {
+            clearInterval(globalTimerInterval);
+            document.getElementById('results-message').innerHTML = message;
+            if(gifHtml) {
+                document.getElementById('results-message').innerHTML += gifHtml;
+            }
+            showView('results');
+        }
+
+        // ==========================================
+        // GAME 1: SPRINT RUSH (Speed Run)
+        // ==========================================
+        let srTimeLeft = 60, srCurrentWord = null, srDeck = [];
+        function initSpeedRun() {
+            srTimeLeft = 60; score = 0; srDeck = shuffleArray([...vocabData]);
+            updateSrUI(); showView('speedrun'); nextSrQuestion();
+            globalTimerInterval = setInterval(() => {
+                srTimeLeft--; updateSrUI();
+                if (srTimeLeft <= 0) endGame("Time's up! The design studio is closing.");
+            }, 1000);
+        }
+        function updateSrUI() {
+            document.getElementById('sr-score').textContent = `Budget: $${score}`;
+            document.getElementById('sr-time-text').textContent = srTimeLeft;
+            const bar = document.getElementById('sr-timer-bar');
+            bar.style.width = `${(srTimeLeft / 60) * 100}%`;
+            bar.className = 'timer-bar ' + (srTimeLeft <= 10 ? 'timer-danger' : srTimeLeft <= 20 ? 'timer-warning' : '');
+        }
+        function nextSrQuestion() {
+            const playArea = document.getElementById('sr-play-area');
+            playArea.classList.remove('animate-pop-in'); void playArea.offsetWidth; playArea.classList.add('animate-pop-in');
+            if (srDeck.length === 0) srDeck = shuffleArray([...vocabData]);
+            srCurrentWord = srDeck.pop();
+            
+            const availableWrong = shuffleArray(vocabData.filter(v => v.word !== srCurrentWord.word));
+            const uniqueWrong = []; const seen = new Set([srCurrentWord.word]);
+            for(let w of availableWrong) { if(!seen.has(w.word)) { uniqueWrong.push(w); seen.add(w.word); } if(uniqueWrong.length>=3) break; }
+            const options = shuffleArray([srCurrentWord, ...uniqueWrong]);
+
+            document.getElementById('sr-definition').textContent = `"${srCurrentWord.def}"`;
+            const container = document.getElementById('sr-options'); container.innerHTML = '';
+            options.forEach(opt => {
+                const btn = document.createElement('button');
+                btn.className = "bg-slate-900 text-slate-200 border border-slate-700 font-bold py-4 px-6 rounded-xl shadow hover:bg-slate-800 hover:text-white transition-all capitalize font-display tracking-widest text-xl";
+                btn.textContent = opt.word;
+                btn.onclick = () => {
+                    if(opt.word === srCurrentWord.word) {
+                        score+=10; srTimeLeft = Math.min(60, srTimeLeft+2);
+                        btn.className = "bg-emerald-600 text-white font-bold py-4 px-6 rounded-xl shadow capitalize font-display tracking-widest border border-emerald-400 text-xl";
+                        updateSrUI(); setTimeout(nextSrQuestion, 400);
+                    } else {
+                        score = Math.max(0, score-5); srTimeLeft = Math.max(0, srTimeLeft-3);
+                        btn.className = "bg-rose-800 text-white font-bold py-4 px-6 rounded-xl shadow capitalize animate-shake opacity-50 cursor-not-allowed font-display tracking-widest border border-rose-500 text-xl";
+                        btn.disabled = true; updateSrUI();
+                        if(srTimeLeft<=0) endGame("Time's up! The design studio is closing.");
+                    }
+                };
+                container.appendChild(btn);
+            });
+        }
+
+        // ==========================================
+        // GAME 2: THE CRYPTOGRAM (Hangman)
+        // ==========================================
+        let scWords = [], scCurrentIndex = 0, scTargetWord = '', scGuessedLetters = new Set(), scLives = 6;
+        const ALPHABET = "ABCDEFGHIJKLMNOPQRSTUVWXYZ".split('');
+        function initHangman() {
+            score = 0; scCurrentIndex = 0;
+            const uniqueSet = []; const seen = new Set();
+            for(let item of shuffleArray([...vocabData])) { if(!seen.has(item.word)){ seen.add(item.word); uniqueSet.push(item); } if(uniqueSet.length>=5) break; }
+            scWords = uniqueSet;
+            showView('scrambler'); loadHangmanLevel();
+        }
+        function loadHangmanLevel() {
+            if (scCurrentIndex >= scWords.length) { 
+                const uniqueSet = []; const seen = new Set();
+                for(let item of shuffleArray([...vocabData])) { if(!seen.has(item.word)){ seen.add(item.word); uniqueSet.push(item); } if(uniqueSet.length>=5) break; }
+                scWords = uniqueSet; scCurrentIndex = 0;
+            }
+            document.getElementById('sc-progress').textContent = `Plan ${scCurrentIndex + 1} of 5`;
+            document.getElementById('sc-score').textContent = `Score: ${score}`;
+            const obj = scWords[scCurrentIndex]; scTargetWord = obj.word.toUpperCase(); scGuessedLetters.clear(); scLives = 6;
+            document.getElementById('sc-definition').textContent = `"${obj.def}"`;
+            document.getElementById('sc-play-area').classList.remove('animate-pop-in'); void document.getElementById('sc-play-area').offsetWidth; document.getElementById('sc-play-area').classList.add('animate-pop-in');
+            renderHangmanUI();
+        }
+        function renderHangmanUI() {
+            document.getElementById('sc-score').textContent = `Score: ${score}`;
+            const livesDiv = document.getElementById('sc-lives-display'); livesDiv.innerHTML = '';
+            for(let i=0; i<6; i++) { livesDiv.innerHTML += `<span class="${i < scLives ? '' : 'opacity-20 grayscale'}">✏️</span>`; }
+            const slotsContainer = document.getElementById('sc-target-slots'); slotsContainer.innerHTML = '';
+            let allRevealed = true;
+            for (let char of scTargetWord) {
+                const slot = document.createElement('div');
+                if (char === ' ' || char === '-') { slot.className = "letter-tile empty border-none bg-transparent"; slot.textContent = char; }
+                else if (scGuessedLetters.has(char)) { slot.className = "letter-tile filled"; slot.textContent = char; }
+                else { slot.className = "letter-tile empty"; slot.textContent = ''; allRevealed = false; }
+                slotsContainer.appendChild(slot);
+            }
+            const poolContainer = document.getElementById('sc-letters-pool'); poolContainer.innerHTML = '';
+            ALPHABET.forEach(l => {
+                const btn = document.createElement('button');
+                const isGuessed = scGuessedLetters.has(l);
+                btn.className = `w-10 h-12 m-1 font-bold rounded text-lg transition-all font-display ${isGuessed ? (scTargetWord.includes(l)?'bg-emerald-700 text-white opacity-50 cursor-not-allowed border border-emerald-500':'bg-rose-800 text-white opacity-50 cursor-not-allowed border border-rose-600') : 'bg-slate-700 text-cyan-100 hover:bg-slate-600 active:scale-95 border border-slate-500'}`;
+                btn.textContent = l; btn.disabled = isGuessed || scLives<=0 || allRevealed;
+                if(!btn.disabled) btn.onclick = () => { 
+                    scGuessedLetters.add(l); 
+                    if(!scTargetWord.includes(l)){ scLives--; score=Math.max(0,score-5); document.getElementById('sc-play-area').classList.add('animate-shake'); setTimeout(()=>document.getElementById('sc-play-area').classList.remove('animate-shake'),400); } else { score+=10; } 
+                    renderHangmanUI(); 
+                };
+                poolContainer.appendChild(btn);
+            });
+            if (allRevealed) {
+                score += 50; Array.from(slotsContainer.children).forEach(s => { if(s.classList.contains('filled')) { s.style.background="linear-gradient(to bottom right, #0ea5e9, #0284c7)"; s.style.borderColor="#7dd3fc"; s.style.color="#fff"; }});
+                setTimeout(()=>{scCurrentIndex++; loadHangmanLevel();}, 1200);
+            } else if (scLives <= 0) {
+                slotsContainer.innerHTML = '';
+                for (let char of scTargetWord) { const slot = document.createElement('div'); slot.className = "letter-tile filled"; slot.style.background="linear-gradient(to bottom right, #9f1239, #be123c)"; slot.style.borderColor="#fda4af"; slot.style.color="#fff"; slot.textContent = char; slotsContainer.appendChild(slot); }
+                setTimeout(()=>{scCurrentIndex++; loadHangmanLevel();}, 2000);
+            }
+        }
+        function scramblerHint() {
+            const unrevealed = scTargetWord.split('').filter(char => char !== ' ' && char !== '-' && !scGuessedLetters.has(char));
+            if (unrevealed.length > 0 && scLives > 1) {
+                scGuessedLetters.add(unrevealed[Math.floor(Math.random() * unrevealed.length)]);
+                scLives--; score = Math.max(0, score - 10);
+                document.getElementById('sc-play-area').classList.add('animate-shake'); setTimeout(() => document.getElementById('sc-play-area').classList.remove('animate-shake'), 400);
+                renderHangmanUI();
+            } else if (scLives <= 1) { alert("Not enough pencils left to ask for a hint!"); }
+        }
+        function scramblerReveal() { scTargetWord.split('').forEach(c => scGuessedLetters.add(c)); score = Math.max(0, score - 25); renderHangmanUI(); }
+
+        // ==========================================
+        // GAME 3: MEMORY MATCH
+        // ==========================================
+        let resFlipped = [], resMatches = 0;
+        let resTimeLeft = 60, resInitial = 60, resIsRunning = false;
+
+        function initRestoration() {
+            resMatches = 0; resFlipped = []; 
+            document.getElementById('res-score').textContent = `Matches: 0 / 8`;
+            resetResTimer();
+            showView('restoration');
+            
+            const grid = document.getElementById('res-grid'); 
+            grid.innerHTML = '';
+            grid.classList.add('opacity-50', 'pointer-events-none');
+            
+            shuffleArray([...memoryPairsData]).forEach((item, index) => {
+                const card = document.createElement('div');
+                card.className = "perspective-1000 w-full h-24 md:h-32 cursor-pointer";
+                card.innerHTML = `
+                    <div class="relative w-full h-full transform-style-3d transition-transform duration-500" id="res-card-inner-${index}" data-id="${item.id}">
+                        <div class="absolute w-full h-full backface-hidden bg-gradient-to-br from-slate-700 to-slate-900 rounded-xl border-2 border-cyan-500/50 shadow-lg flex items-center justify-center text-4xl">🔗</div>
+                        <div class="absolute w-full h-full backface-hidden rotate-y-180 bg-slate-100 rounded-xl border-2 border-cyan-600 shadow-lg flex items-center justify-center p-2 text-center">
+                            <span class="text-slate-900 font-bold font-display ${item.text.length > 10 ? 'text-sm md:text-base' : 'text-lg md:text-xl'} uppercase tracking-wide">${item.text}</span>
+                        </div>
+                    </div>
+                `;
+                card.onclick = () => handleResClick(index);
+                grid.appendChild(card);
+            });
+        }
+
+        function updateResTimerDisplay() {
+            const d = document.getElementById('res-timer-display');
+            d.innerText = `${Math.floor(resTimeLeft/60).toString().padStart(2,'0')}:${(resTimeLeft%60).toString().padStart(2,'0')}`;
+            if(resTimeLeft <= 10 && resTimeLeft > 0) { d.classList.add('text-rose-500'); d.classList.remove('text-white'); } 
+            else { d.classList.remove('text-rose-500'); d.classList.add('text-white'); }
+        }
+        function adjustResTimer(amt) { 
+            if(!resIsRunning) { resInitial=Math.max(10,resInitial+amt); resTimeLeft=resInitial; updateResTimerDisplay(); } 
+        }
+        function startResTimer() { 
+            if(!resIsRunning && resTimeLeft > 0) { 
+                resIsRunning = true; 
+                document.getElementById('res-grid').classList.remove('opacity-50', 'pointer-events-none');
+                globalTimerInterval = setInterval(() => { 
+                    resTimeLeft--; updateResTimerDisplay(); 
+                    if(resTimeLeft <= 0) { 
+                        clearInterval(globalTimerInterval); resIsRunning = false; 
+                        document.getElementById('res-grid').classList.add('opacity-50', 'pointer-events-none');
+                        endGame("Time's Up! The site is closed."); 
+                    }
+                }, 1000); 
+            } 
+        }
+        function pauseResTimer() { 
+            resIsRunning = false; clearInterval(globalTimerInterval); 
+            document.getElementById('res-grid').classList.add('opacity-50', 'pointer-events-none');
+        }
+        function resetResTimer() { 
+            resIsRunning = false; clearInterval(globalTimerInterval); 
+            resTimeLeft = resInitial; updateResTimerDisplay(); 
+            document.getElementById('res-grid').classList.add('opacity-50', 'pointer-events-none');
+        }
+
+        function handleResClick(index) {
+            if(!resIsRunning) return;
+            const inner = document.getElementById(`res-card-inner-${index}`);
+            if (resFlipped.length >= 2 || inner.classList.contains('rotate-y-180') || inner.classList.contains('matched')) return;
+            
+            inner.classList.add('rotate-y-180'); resFlipped.push({ idx: index, id: inner.dataset.id, el: inner });
+            
+            if (resFlipped.length === 2) {
+                if (resFlipped[0].id === resFlipped[1].id) {
+                    resMatches++; document.getElementById('res-score').textContent = `Matches: ${resMatches} / 8`;
+                    resFlipped.forEach(f => {
+                        f.el.classList.add('matched');
+                        f.el.children[1].classList.remove('bg-slate-100', 'border-cyan-600');
+                        f.el.children[1].classList.add('bg-blue-200', 'border-blue-500', 'text-blue-900');
+                    });
+                    resFlipped = [];
+                    if (resMatches === 8) setTimeout(() => { score=resTimeLeft*10; endGame("Conceptual Links Restored!"); }, 1000);
+                } else {
+                    setTimeout(() => { resFlipped.forEach(f => f.el.classList.remove('rotate-y-180')); resFlipped = []; }, 1000);
+                }
+            }
+        }
+
+        // ==========================================
+        // GAME 4: BOMB GAME
+        // ==========================================
+        let bombStage = 0, bombTimeLeft = 60, currentBombQ = null, bDeck = [];
+        function initDefuse() {
+            bombStage = 0; bombTimeLeft = 60; 
+            bDeck = shuffleArray([...bombQuestions]); 
+            showView('defuse'); 
+            nextBombStage();
+            
+            clearInterval(globalTimerInterval);
+            globalTimerInterval = setInterval(() => {
+                bombTimeLeft -= 0.1;
+                document.getElementById('bomb-timer').textContent = Math.max(0, bombTimeLeft).toFixed(1);
+                if (bombTimeLeft <= 0) { 
+                    clearInterval(globalTimerInterval); 
+                    endGame("BOOM! The debate collapsed."); 
+                }
+            }, 100);
+        }
+
+        function nextBombStage() {
+            bombStage++;
+            if (bombStage > 10) { 
+                clearInterval(globalTimerInterval); 
+                score += Math.floor(bombTimeLeft * 10); 
+                endGame("Debate Won! You defused the situation."); 
+                return; 
+            }
+            
+            document.getElementById('bomb-stage').textContent = `Trap ${bombStage} of 10`;
+            currentBombQ = bDeck.pop();
+            
+            const qArea = document.getElementById('bomb-question');
+            qArea.classList.remove('animate-pop-in'); void qArea.offsetWidth; qArea.classList.add('animate-pop-in');
+            qArea.innerHTML = currentBombQ.q.replace('____', '<span class="text-cyan-400 font-bold border-b-2 border-cyan-500 px-2">____</span>');
+            
+            const wires = shuffleArray([ {w: currentBombQ.a, c: true}, {w: currentBombQ.w1, c: false}, {w: currentBombQ.w2, c: false} ]);
+            const colors = shuffleArray(["bg-rose-800 hover:bg-rose-700", "bg-blue-700 hover:bg-blue-600", "bg-emerald-700 hover:bg-emerald-600"]);
+            
+            const container = document.getElementById('bomb-wires'); container.innerHTML = '';
+            
+            wires.forEach((wire, i) => {
+                const btn = document.createElement('button');
+                btn.className = `${colors[i]} text-white font-bold py-4 rounded-lg w-full transition border-b-4 border-black/30 active:border-b-0 active:translate-y-1 uppercase tracking-widest font-display text-lg`;
+                btn.textContent = wire.w;
+                btn.onclick = () => {
+                    if(wire.c) { nextBombStage(); } 
+                    else { 
+                        bombTimeLeft -= 10; 
+                        document.getElementById('bomb-container').classList.add('animate-shake'); 
+                        document.getElementById('bomb-timer').classList.add('text-cyan-500');
+                        setTimeout(() => { document.getElementById('bomb-container').classList.remove('animate-shake'); document.getElementById('bomb-timer').classList.remove('text-cyan-500'); }, 500);
+                        if(bombTimeLeft <= 0) { clearInterval(globalTimerInterval); endGame("BOOM! The debate collapsed."); }
+                    }
+                };
+                container.appendChild(btn);
+            });
+        }
+
+        // ==========================================
+        // GAME 5: SENTENCE CLASH
+        // ==========================================
+        let team1Score = 0, team2Score = 0, snTimeLeft = 60, snInitial = 60, snIsRunning = false;
+        function initSentenceGame() { team1Score=0; team2Score=0; updateScoreboard(); resetSnTimer(); showView('sentence'); nextSentenceWords(); }
+        function updateTeamScore(team, amt) { team===1 ? team1Score=Math.max(0,team1Score+amt) : team2Score=Math.max(0,team2Score+amt); updateScoreboard(); }
+        function updateScoreboard() { document.getElementById('team1-score').innerText = team1Score; document.getElementById('team2-score').innerText = team2Score; }
+        
+        function nextSentenceWords() {
+            const group = sentenceGroups[Math.floor(Math.random()*sentenceGroups.length)];
+            const container = document.getElementById('sn-words-container'); container.innerHTML = '';
+            
+            document.getElementById('sn-example-box').classList.add('hidden');
+            
+            group.words.forEach((word, i) => {
+                container.innerHTML += `
+                    <div class="bg-gradient-to-br from-slate-700 to-slate-900 border border-slate-500 text-cyan-400 px-8 py-5 rounded-xl shadow-xl transform transition hover:scale-105 cursor-default text-center min-w-[200px]">
+                        <span class="text-3xl font-black tracking-widest uppercase font-display">${word}</span>
+                    </div>
+                `;
+                if(i < group.words.length - 1) {
+                    container.innerHTML += `<div class="text-4xl text-slate-500 font-black">+</div>`;
+                }
+            });
+            document.getElementById('sn-example-text').textContent = `"${group.example}"`;
+        }
+
+        function toggleSentenceExample() {
+            const box = document.getElementById('sn-example-box');
+            box.classList.toggle('hidden');
+        }
+
+        function updateSnTimerDisplay() {
+            const d = document.getElementById('sn-timer-display');
+            d.innerText = `${Math.floor(snTimeLeft/60).toString().padStart(2,'0')}:${(snTimeLeft%60).toString().padStart(2,'0')}`;
+            if(snTimeLeft<=10 && snTimeLeft>0) { d.classList.add('text-rose-500'); d.classList.remove('text-white'); } else { d.classList.remove('text-rose-500'); d.classList.add('text-white'); }
+        }
+        function adjustSnTimer(amt) { if(!snIsRunning) { snInitial=Math.max(10,snInitial+amt); snTimeLeft=snInitial; updateSnTimerDisplay(); } }
+        function startSnTimer() { if(!snIsRunning && snTimeLeft>0) { snIsRunning=true; globalTimerInterval=setInterval(()=>{ snTimeLeft--; updateSnTimerDisplay(); if(snTimeLeft<=0) { clearInterval(globalTimerInterval); snIsRunning=false; const d=document.getElementById('sn-timer-display'); d.innerText="TIME'S UP!"; d.classList.add('text-rose-500','animate-shake'); setTimeout(()=>d.classList.remove('animate-shake'),500); }}, 1000); } }
+        function pauseSnTimer() { snIsRunning=false; clearInterval(globalTimerInterval); }
+        function resetSnTimer() { snIsRunning=false; clearInterval(globalTimerInterval); snTimeLeft=snInitial; const d=document.getElementById('sn-timer-display'); d.classList.remove('animate-shake','text-rose-500'); d.classList.add('text-white'); updateSnTimerDisplay(); }
+
+        // ==========================================
+        // GAME 6: JEOPARDY
+        // ==========================================
+        let jeopScoreA = 0, jeopScoreB = 0, currentJeopValue = 0, currentJeopCell = null;
+        let jeopTimeLeft = 30, jeopGlobalTime = 30, jeopIsRunning = false, jeopTimerInterval;
+        let jeopIsRisky = false;
+
+        function toggleJeopMode() {
+            jeopIsRisky = !jeopIsRisky;
+            const btn = document.getElementById('jeop-mode-btn');
+            const desc = document.getElementById('jeop-mode-desc');
+            const riskyBtns = document.querySelectorAll('.jeop-risky-btn');
+            
+            if(jeopIsRisky) {
+                btn.textContent = 'Competitive Mode';
+                btn.className = 'bg-rose-800 hover:bg-rose-700 text-white px-5 py-2 rounded-lg font-bold transition shadow-md border border-rose-500 animate-pulse';
+                desc.textContent = 'Wrong answers deduct points!';
+                desc.classList.replace('text-slate-400', 'text-rose-400');
+                riskyBtns.forEach(b => b.classList.remove('hidden'));
+            } else {
+                btn.textContent = 'Exhibition (Safe)';
+                btn.className = 'bg-emerald-700 hover:bg-emerald-600 text-white px-5 py-2 rounded-lg font-bold transition shadow-md border border-emerald-500';
+                desc.textContent = 'Wrong answers do not lose points.';
+                desc.classList.replace('text-rose-400', 'text-slate-400');
+                riskyBtns.forEach(b => b.classList.add('hidden'));
+            }
+        }
+
+        function initJeopardy() {
+            jeopScoreA = 0; jeopScoreB = 0; document.getElementById('jeop-score-a').textContent = 0; document.getElementById('jeop-score-b').textContent = 0;
+            const board = document.getElementById('jeopardy-board'); board.innerHTML = '';
+            
+            board.className = "min-w-[800px] grid grid-cols-5 gap-2";
+            
+            jeopardyCategories.forEach(cat => {
+                const header = document.createElement('div');
+                header.className = "bg-slate-800 text-cyan-400 font-display text-sm md:text-base text-center py-4 px-2 uppercase shadow-inner border-b-4 border-slate-900 leading-tight flex items-center justify-center h-20 tracking-wider";
+                header.textContent = cat.name;
+                board.appendChild(header);
+            });
+            for(let row=0; row<4; row++) {
+                jeopardyCategories.forEach((cat) => {
+                    const val = (row+1)*100;
+                    const cell = document.createElement('div');
+                    cell.className = "bg-blue-900/80 hover:bg-blue-800 text-cyan-500 font-display text-3xl md:text-4xl text-center py-6 cursor-pointer border-b-4 border-blue-950 transition active:translate-y-1 active:border-b-0";
+                    cell.textContent = val;
+                    cell.onclick = () => openJeopardyQ(cat.name, cat.questions[row], val, cell);
+                    board.appendChild(cell);
+                });
+            }
+            showView('jeopardy');
+        }
+
+        function openJeopardyQ(catName, qObj, val, cellElement) {
+            if(cellElement.classList.contains('opacity-0')) return;
+            currentJeopValue = val; currentJeopCell = cellElement;
+            document.getElementById('jeop-cat-val').textContent = `${catName} for ${val}`;
+            document.getElementById('jeop-q-text').textContent = qObj.q;
+            document.getElementById('jeop-a-text').textContent = qObj.a;
+            
+            document.getElementById('jeop-answer-area').classList.add('hidden');
+            document.getElementById('jeop-reveal-btn').classList.remove('hidden');
+            document.getElementById('jeop-modal').classList.remove('hidden');
+        }
+
+        function cancelJeopardy() {
+            currentJeopCell.classList.remove('opacity-0', 'cursor-default'); 
+            currentJeopCell.classList.add('hover:bg-blue-800', 'active:translate-y-1');
+            document.getElementById('jeop-modal').classList.add('hidden');
+        }
+
+        function awardJeopardy(team, isPositive) {
+            let points = isPositive ? currentJeopValue : -currentJeopValue;
+            
+            if(team===1) { jeopScoreA += points; document.getElementById('jeop-score-a').textContent = jeopScoreA; }
+            if(team===2) { jeopScoreB += points; document.getElementById('jeop-score-b').textContent = jeopScoreB; }
+            
+            if (!isPositive && team !== 0) return;
+            
+            currentJeopCell.classList.add('opacity-0', 'cursor-default'); currentJeopCell.classList.remove('hover:bg-blue-800', 'active:translate-y-1');
+            document.getElementById('jeop-modal').classList.add('hidden');
+            
+            const allCells = document.getElementById('jeopardy-board').children;
+            let finished = true;
+            for(let i=5; i<allCells.length; i++) { if(!allCells[i].classList.contains('opacity-0')) finished = false; }
+            
+            if(finished) { 
+                let winnerText = jeopScoreA > jeopScoreB ? "Team Alpha Wins!" : (jeopScoreB > jeopScoreA ? "Team Omega Wins!" : "It's a Tie!");
+                let gifUrl = "https://media.giphy.com/media/xT0xezQGU5xCDJuCPe/giphy.gif"; 
+                setTimeout(()=>endGame(
+                    `Jeopardy Complete!<br><span class="text-5xl text-cyan-500 mt-4 block font-bold">${winnerText}</span>`, 
+                    `<img src="${gifUrl}" class="mx-auto rounded-xl shadow-lg mt-6 max-h-64 border-4 border-cyan-600">`
+                ), 1000); 
+            }
+        }
+
+        // ==========================================
+        // GAME 7: MILLIONAIRE (Trivia)
+        // ==========================================
+        let milDeck = [], milLevel = 0;
+        const prizeLadder = ["Homeless", "Tenant", "Homeowner", "Architect", "Interior Designer", "Urban Planner", "Real Estate Mogul", "Property Baron", "Mayor", "Master of Habitats"];
+        let currentMilQ = null;
+        let milTimerInterval;
+        let milTimeLeft = 15;
+
+        const sndCorrect = new Audio('https://www.myinstants.com/media/sounds/extremely-loud-correct-buzzer.mp3');
+        const sndIncorrect = new Audio('https://www.myinstants.com/media/sounds/extremely-loud-incorrect-buzzer.mp3');
+
+        function initMillionaire() {
+            milLevel = 0;
+            milDeck = shuffleArray([...mogulQuestions]).slice(0, 10);
+            
+            clearInterval(milTimerInterval);
+            
+            const btn5050 = document.getElementById('btn-5050');
+            btn5050.disabled = false;
+            btn5050.classList.remove('opacity-50', 'cursor-not-allowed', 'bg-slate-700', 'border-slate-500');
+            btn5050.classList.add('bg-cyan-600', 'hover:bg-cyan-500', 'border-cyan-300');
+
+            const btnAudience = document.getElementById('btn-audience');
+            btnAudience.disabled = false;
+            btnAudience.classList.remove('opacity-50', 'cursor-not-allowed', 'bg-slate-700', 'border-slate-500');
+            btnAudience.classList.add('bg-emerald-600', 'hover:bg-emerald-500', 'border-emerald-300');
+            
+            document.getElementById('mil-audience-poll').classList.add('hidden');
+
+            showView('millionaire');
+            loadMilQuestion();
+        }
+
+        function updateLadderUI() {
+            const steps = document.querySelectorAll('.ladder-step');
+            steps.forEach(step => {
+                const stepLevel = parseInt(step.getAttribute('data-level'));
+                step.classList.remove('active', 'passed');
+                if (stepLevel === milLevel) {
+                    step.classList.add('active');
+                } else if (stepLevel < milLevel) {
+                    step.classList.add('passed');
+                }
+            });
+        }
+
+        function loadMilQuestion() {
+            clearInterval(milTimerInterval);
+            document.getElementById('mil-audience-poll').classList.add('hidden');
+            
+            if (milLevel >= 10) {
+                let gifUrl = "https://media.giphy.com/media/26tOZ42Mg6pbTUPHW/giphy.gif";
+                endGame("You made it to the top! You are the Master of Habitats!", `<img src="${gifUrl}" class="mx-auto rounded-xl shadow-lg mt-6 max-h-64 border-4 border-cyan-500">`);
+                return;
+            }
+            updateLadderUI();
+            currentMilQ = milDeck[milLevel];
+            
+            const timerDisplay = document.getElementById('mil-timer-display');
+            if (milLevel < 4) {
+                timerDisplay.classList.remove('hidden');
+                milTimeLeft = 15;
+                timerDisplay.textContent = milTimeLeft;
+                timerDisplay.classList.remove('text-rose-600', 'animate-pulse');
+                
+                milTimerInterval = setInterval(() => {
+                    milTimeLeft--;
+                    timerDisplay.textContent = milTimeLeft;
+                    if (milTimeLeft <= 5) {
+                        timerDisplay.classList.add('text-rose-600', 'animate-pulse');
+                    }
+                    if (milTimeLeft <= 0) {
+                        clearInterval(milTimerInterval);
+                        handleMilTimeout();
+                    }
+                }, 1000);
+            } else {
+                timerDisplay.classList.add('hidden');
+            }
+
+            const qText = document.getElementById('mil-q-text');
+            qText.parentElement.classList.remove('animate-pop-in'); void qText.parentElement.offsetWidth; qText.parentElement.classList.add('animate-pop-in');
+            qText.textContent = currentMilQ.q;
+
+            const container = document.getElementById('mil-options');
+            container.innerHTML = '';
+            
+            const letters = ['A', 'B', 'C', 'D'];
+            currentMilQ.options.forEach((opt, idx) => {
+                const btn = document.createElement('button');
+                btn.className = "mil-opt-btn bg-slate-800 hover:bg-slate-700 border-2 border-cyan-600/50 text-white font-bold py-5 px-6 rounded-xl transition text-left flex gap-4 text-xl shadow-[0_4px_0_#0284c7] active:translate-y-1 active:shadow-none font-display";
+                btn.innerHTML = `<span class="text-cyan-400 w-6">${letters[idx]}:</span> <span class="flex-grow">${opt}</span>`;
+                btn.onclick = () => checkMilAnswer(idx, btn);
+                container.appendChild(btn);
+            });
+        }
+
+        function handleMilTimeout() {
+            const container = document.getElementById('mil-options');
+            Array.from(container.children).forEach(b => b.disabled = true);
+            sndIncorrect.play().catch(e => console.log("Audio blocked"));
+            
+            Array.from(container.children)[currentMilQ.ans].classList.replace('bg-slate-800', 'bg-emerald-600');
+            
+            const winnings = milLevel > 0 ? prizeLadder[milLevel - 1] : "Homeless";
+            setTimeout(() => endGame(`Time expired! You end your career as: ${winnings}.`), 2500);
+        }
+
+        function use5050() {
+            const btn5050 = document.getElementById('btn-5050');
+            if (btn5050.disabled) return;
+            
+            btn5050.disabled = true;
+            btn5050.classList.remove('bg-cyan-600', 'hover:bg-cyan-500', 'border-cyan-300');
+            btn5050.classList.add('bg-slate-700', 'border-slate-500', 'opacity-50', 'cursor-not-allowed');
+
+            const container = document.getElementById('mil-options');
+            let wrongIndices = [0, 1, 2, 3].filter(i => i !== currentMilQ.ans);
+            wrongIndices = shuffleArray(wrongIndices).slice(0, 2);
+
+            Array.from(container.children).forEach((btn, idx) => {
+                if (wrongIndices.includes(idx)) {
+                    btn.style.visibility = 'hidden'; 
+                }
+            });
+        }
+
+        function useAudience() {
+            const btnAudience = document.getElementById('btn-audience');
+            if (btnAudience.disabled) return;
+            
+            btnAudience.disabled = true;
+            btnAudience.classList.remove('bg-emerald-600', 'hover:bg-emerald-500', 'border-emerald-300');
+            btnAudience.classList.add('bg-slate-700', 'border-slate-500', 'opacity-50', 'cursor-not-allowed');
+
+            const pollDiv = document.getElementById('mil-audience-poll');
+            pollDiv.classList.remove('hidden');
+            pollDiv.innerHTML = '<span class="animate-pulse">Consulting architects...</span>';
+
+            setTimeout(() => {
+                let percentages = [0, 0, 0, 0];
+                const correctBoost = Math.floor(Math.random() * 20) + 55; 
+                percentages[currentMilQ.ans] = correctBoost;
+                
+                let remaining = 100 - correctBoost;
+                const container = document.getElementById('mil-options');
+                
+                let visibleIndices = [];
+                Array.from(container.children).forEach((btn, idx) => {
+                    if (idx !== currentMilQ.ans && btn.style.visibility !== 'hidden') {
+                        visibleIndices.push(idx);
+                    }
+                });
+
+                if (visibleIndices.length > 0) {
+                    for (let i = 0; i < visibleIndices.length - 1; i++) {
+                        let share = Math.floor(Math.random() * remaining);
+                        percentages[visibleIndices[i]] = share;
+                        remaining -= share;
+                    }
+                    percentages[visibleIndices[visibleIndices.length - 1]] = remaining;
+                }
+
+                let resultHTML = '<strong class="text-emerald-300 uppercase tracking-widest block mb-3 border-b border-emerald-500/50 pb-1">Expert Consensus:</strong>';
+                const letters = ['A', 'B', 'C', 'D'];
+                currentMilQ.options.forEach((opt, idx) => {
+                    if (container.children[idx].style.visibility !== 'hidden') {
+                        resultHTML += `<div class="mb-1"><span class="inline-block w-8 font-black text-cyan-400">${letters[idx]}:</span> ${percentages[idx]}%</div>`;
+                    }
+                });
+                
+                pollDiv.innerHTML = resultHTML;
+            }, 1200);
+        }
+
+        function checkMilAnswer(selectedIndex, btnElement) {
+            clearInterval(milTimerInterval);
+            const container = document.getElementById('mil-options');
+            Array.from(container.children).forEach(b => b.disabled = true);
+
+            btnElement.classList.replace('bg-slate-800', 'bg-cyan-500');
+            btnElement.classList.replace('hover:bg-slate-700', 'bg-cyan-500');
+            btnElement.classList.replace('text-white', 'text-black');
+
+            setTimeout(() => {
+                if (selectedIndex === currentMilQ.ans) {
+                    sndCorrect.play().catch(e => console.log("Audio blocked"));
+                    btnElement.classList.replace('bg-cyan-500', 'bg-emerald-600');
+                    btnElement.classList.replace('text-black', 'text-white');
+                    setTimeout(() => {
+                        milLevel++;
+                        loadMilQuestion();
+                    }, 1500);
+                } else {
+                    sndIncorrect.play().catch(e => console.log("Audio blocked"));
+                    btnElement.classList.replace('bg-cyan-500', 'bg-rose-800');
+                    btnElement.classList.replace('text-black', 'text-white');
+                    btnElement.classList.add('animate-shake');
+                    Array.from(container.children)[currentMilQ.ans].classList.replace('bg-slate-800', 'bg-emerald-600');
+                    
+                    const winnings = milLevel > 0 ? prizeLadder[milLevel - 1] : "Homeless";
+                    setTimeout(() => endGame(`You were evicted! You end your career as: ${winnings}.`), 2500);
+                }
+            }, 1500);
+        }
+
+        // ==========================================
+        // GAME 8: BAAMBOOZLE
+        // ==========================================
+        let bbzScoreA = 0, bbzScoreB = 0, currentBbzCell = null, currentBbzData = null;
+        let bbzTimeLeft = 30, bbzInitial = 30, bbzIsRunning = false;
+
+        function initBaamboozle() {
+            bbzScoreA = 0; bbzScoreB = 0;
+            updateBbzScores();
+            resetBbzTimer();
+            
+            const board = document.getElementById('bbz-board');
+            board.innerHTML = '';
+            
+            let shuffledDeck = shuffleArray([...baamData]);
+
+            shuffledDeck.forEach((item, index) => {
+                const cell = document.createElement('div');
+                cell.className = "bg-blue-900/80 hover:bg-blue-800 text-cyan-400 font-display text-5xl text-center py-6 cursor-pointer border-b-4 border-blue-950 transition active:translate-y-1 active:border-b-0 rounded-xl shadow-lg";
+                cell.textContent = index + 1;
+                cell.onclick = () => openBbzTile(item, cell);
+                board.appendChild(cell);
+            });
+            showView('baamboozle');
+        }
+        
+        // --- BAAMBOOZLE TIMER LOGIC ---
+        function updateBbzTimerDisplay() {
+            const d = document.getElementById('bbz-timer-display');
+            d.innerText = bbzTimeLeft;
+            if(bbzTimeLeft <= 10 && bbzTimeLeft > 0) d.classList.add('text-rose-500', 'animate-pulse'); else d.classList.remove('text-rose-500', 'animate-pulse');
+        }
+        function adjustBbzTimer(amt) {
+            bbzInitial = Math.max(5, bbzInitial + amt);
+            if(!bbzIsRunning) {
+                bbzTimeLeft = bbzInitial;
+                updateBbzTimerDisplay();
+            }
+        }
+        function startBbzTimer() {
+            if(!bbzIsRunning && bbzTimeLeft > 0) {
+                bbzIsRunning = true;
+                document.getElementById('bbz-pause-btn').textContent = "Pause";
+                globalTimerInterval = setInterval(() => {
+                    bbzTimeLeft--; updateBbzTimerDisplay();
+                    if(bbzTimeLeft <= 0) {
+                        clearInterval(globalTimerInterval); bbzIsRunning = false;
+                        const d = document.getElementById('bbz-timer-display');
+                        d.innerText = "00";
+                    }
+                }, 1000);
+            }
+        }
+        function pauseBbzTimer() {
+            if (bbzIsRunning) {
+                bbzIsRunning = false; clearInterval(globalTimerInterval);
+                document.getElementById('bbz-pause-btn').textContent = "Resume";
+            } else {
+                startBbzTimer();
+            }
+        }
+        function resetBbzTimer() {
+            bbzIsRunning = false; clearInterval(globalTimerInterval);
+            bbzTimeLeft = bbzInitial; updateBbzTimerDisplay();
+        }
+
+        function openBbzTile(item, cellElement) {
+            if(cellElement.classList.contains('opacity-0')) return;
+            currentBbzCell = cellElement;
+            currentBbzData = item;
+
+            document.getElementById('bbz-modal').classList.remove('hidden');
+
+            if (item.type === 'q') {
+                document.getElementById('bbz-q-area').classList.remove('hidden');
+                document.getElementById('bbz-p-area').classList.add('hidden');
+                document.getElementById('bbz-q-text').textContent = item.q;
+                document.getElementById('bbz-a-text').textContent = item.a;
+                document.getElementById('bbz-answer-area').classList.add('hidden');
+                document.getElementById('bbz-reveal-btn').classList.remove('hidden');
+                
+                resetBbzTimer();
+                startBbzTimer();
+            } else {
+                document.getElementById('bbz-q-area').classList.add('hidden');
+                document.getElementById('bbz-p-area').classList.remove('hidden');
+                document.getElementById('bbz-p-title').textContent = item.title;
+                document.getElementById('bbz-p-desc').textContent = item.desc;
+            }
+        }
+
+        function resolveBbz(team) { 
+            if (currentBbzData.type === 'q') {
+                if (team === 1) bbzScoreA += 25;
+                if (team === 2) bbzScoreB += 25;
+            } else {
+                if (team !== 0) {
+                    if (currentBbzData.action === 'gain') {
+                        if (team === 1) bbzScoreA += currentBbzData.amount;
+                        if (team === 2) bbzScoreB += currentBbzData.amount;
+                    } else if (currentBbzData.action === 'lose') {
+                        if (team === 1) bbzScoreA = Math.max(0, bbzScoreA - currentBbzData.amount);
+                        if (team === 2) bbzScoreB = Math.max(0, bbzScoreB - currentBbzData.amount);
+                    } else if (currentBbzData.action === 'steal') {
+                        if (team === 1) {
+                            let stolen = Math.min(currentBbzData.amount, bbzScoreB);
+                            bbzScoreB -= stolen; bbzScoreA += stolen;
+                        } else if (team === 2) {
+                            let stolen = Math.min(currentBbzData.amount, bbzScoreA);
+                            bbzScoreA -= stolen; bbzScoreB += stolen;
+                        }
+                    } else if (currentBbzData.action === 'swap') {
+                        let temp = bbzScoreA; bbzScoreA = bbzScoreB; bbzScoreB = temp;
+                    } else if (currentBbzData.action === 'bankrupt') {
+                        if (team === 1) bbzScoreA = 0;
+                        if (team === 2) bbzScoreB = 0;
+                    }
+                }
+            }
+
+            updateBbzScores();
+            closeBbzModal();
+        }
+
+        function closeBbzModal() {
+            clearInterval(globalTimerInterval);
+            currentBbzCell.classList.add('opacity-0', 'cursor-default');
+            currentBbzCell.classList.remove('hover:bg-blue-800', 'active:translate-y-1');
+            document.getElementById('bbz-modal').classList.add('hidden');
+            checkBbzEnd();
+        }
+
+        function cancelBbz() { 
+            clearInterval(globalTimerInterval);
+            document.getElementById('bbz-modal').classList.add('hidden'); 
+        }
+        
+        function updateBbzScores() { document.getElementById('bbz-score-a').textContent = bbzScoreA; document.getElementById('bbz-score-b').textContent = bbzScoreB; }
+        
+        function checkBbzEnd() {
+            const allCells = document.getElementById('bbz-board').children;
+            let finished = true;
+            for(let i=0; i<allCells.length; i++) { if(!allCells[i].classList.contains('opacity-0')) finished = false; }
+            if(finished) { 
+                let winner = bbzScoreA > bbzScoreB ? "Team Alpha Wins!" : (bbzScoreB > bbzScoreA ? "Team Omega Wins!" : "It's a Tie!");
+                let gif = "https://media.giphy.com/media/xT0xezQGU5xCDJuCPe/giphy.gif"; 
+                setTimeout(()=>endGame(`Exhibition Complete!<br><span class="text-5xl text-cyan-500 mt-4 block font-bold">${winner}</span>`, `<img src="${gif}" class="mx-auto rounded-xl shadow-lg mt-6 max-h-64 border-4 border-cyan-600">`), 1000); 
+            }
+        }
+
+        // ==========================================
+        // GAME 9: TYCOON SETUP (6x6)
+        // ==========================================
+        
+        const ALL_TOKENS = ['🏠', '🛋️', '🎨', '🚪', '☕', '🌳', '🛏️', '🏢', '🔥', '💧', '🧱', '🔨', '🖌️', '🧩', '📚', '🏡'];
+        let tycTokenA = '🏠';
+        let tycTokenB = '🏢';
+
+        function showTycoonSetup() {
+            showView('tycoon-setup');
+            renderTycoonTokenSelectors();
+        }
+
+        function renderTycoonTokenSelectors() {
+            const gridA = document.getElementById('setup-grid-a');
+            const gridB = document.getElementById('setup-grid-b');
+            gridA.innerHTML = ''; gridB.innerHTML = '';
+            
+            ALL_TOKENS.forEach(token => {
+                // Team A
+                const btnA = document.createElement('button');
+                btnA.className = `text-2xl p-2 rounded hover:bg-emerald-500/30 transition ${tycTokenA === token ? 'bg-emerald-500/50 ring-2 ring-emerald-300' : ''}`;
+                btnA.textContent = token;
+                btnA.onclick = () => { tycTokenA = token; renderTycoonTokenSelectors(); document.getElementById('setup-token-a').textContent = token; };
+                gridA.appendChild(btnA);
+
+                // Team B
+                const btnB = document.createElement('button');
+                btnB.className = `text-2xl p-2 rounded hover:bg-rose-500/30 transition ${tycTokenB === token ? 'bg-rose-500/50 ring-2 ring-rose-300' : ''}`;
+                btnB.textContent = token;
+                btnB.onclick = () => { tycTokenB = token; renderTycoonTokenSelectors(); document.getElementById('setup-token-b').textContent = token; };
+                gridB.appendChild(btnB);
+            });
+        }
+
+        function confirmTycoonSetup() {
+            initTycoon();
+        }
+
+        let tycPlayers = [
+            { pos: 0, money: 1000, tokenObj: null },
+            { pos: 0, money: 1000, tokenObj: null }
+        ];
+        let tycTurn = 0; 
+        let tycDeckQ = [];
+        let tycDeckC = [];
+        let activeSpaceId = null;
+
+        function initTycoon() {
+            tycPlayers = [
+                { pos: 0, money: 1000, tokenObj: document.getElementById('token-0') }, 
+                { pos: 0, money: 1000, tokenObj: document.getElementById('token-1') }
+            ];
+            tycTurn = 0;
+            tycDeckQ = shuffleArray([...tycoonQuiz]);
+            tycDeckC = shuffleArray([...tycoonChance]);
+            activeSpaceId = null;
+            
+            // Set Chosen Tokens
+            document.getElementById('tyc-p0-icon').textContent = tycTokenA;
+            document.getElementById('token-0').textContent = tycTokenA;
+            document.getElementById('tyc-p1-icon').textContent = tycTokenB;
+            document.getElementById('token-1').textContent = tycTokenB;
+            
+            // Reset property ownership
+            tycoonSpaces.forEach(sp => { if (sp.type === 'prop') sp.owner = null; });
+            
+            updateTycoonUI();
+            
+            const grid = document.getElementById('tycoon-board-grid');
+            Array.from(grid.children).forEach(child => { if(child.classList.contains('tycoon-space')) child.remove(); });
+
+            tycoonSpaces.forEach(sp => {
+                const div = document.createElement('div');
+                div.className = 'tycoon-space';
+                div.id = `tyc-space-${sp.id}`;
+                div.style.gridColumn = sp.col;
+                div.style.gridRow = sp.row;
+                
+                if (sp.type === 'corner' || sp.type === 'bonus') div.classList.add('tycoon-corner');
+                else if (sp.type === 'penalty' || sp.type === 'tax') {
+                    div.classList.add('bg-slate-800', 'text-white');
+                    div.style.borderColor = '#475569';
+                }
+                
+                let headerColor = sp.color ? `background-color: ${sp.color};` : '';
+                let headerHTML = sp.type === 'prop' ? `<div class="w-full h-3 rounded-t-sm mb-1 absolute top-0 left-0 opacity-50" style="${headerColor}"></div>` : '';
+
+                // Add Price/Rent tags for props
+                let priceHTML = sp.type === 'prop' ? `<div class="text-[8px] text-cyan-700 font-bold mt-1">$${sp.cost}</div>` : '';
+
+                div.innerHTML = `
+                    ${headerHTML}
+                    <div class="text-2xl mt-1 z-10">${sp.icon}</div>
+                    <div class="text-[9px] font-bold uppercase leading-tight mt-1 z-10 text-gray-800 ${sp.type==='penalty'||sp.type==='tax' ? 'text-white' : ''}">${sp.name}</div>
+                    ${priceHTML}
+                `;
+                grid.appendChild(div);
+            });
+
+            showView('tycoon');
+            
+            setTimeout(() => {
+                moveTokenVisually(0, 0);
+                moveTokenVisually(1, 0);
+            }, 100);
+        }
+
+        function updateTycoonUI() {
+            document.getElementById('tyc-score-0').textContent = tycPlayers[0].money;
+            document.getElementById('tyc-score-1').textContent = tycPlayers[1].money;
+            
+            const p0 = document.getElementById('tyc-panel-0');
+            const p1 = document.getElementById('tyc-panel-1');
+            
+            if (tycTurn === 0) {
+                p0.classList.remove('opacity-50', 'scale-95'); p0.classList.add('scale-105', 'ring-2', 'ring-emerald-400');
+                p1.classList.add('opacity-50', 'scale-95'); p1.classList.remove('scale-105', 'ring-2', 'ring-rose-400');
+                document.getElementById('tyc-turn-indicator').textContent = "Alpha's Turn";
+                document.getElementById('tyc-turn-indicator').className = "text-3xl font-display text-emerald-400 mb-2 tracking-widest uppercase drop-shadow-md";
+            } else {
+                p1.classList.remove('opacity-50', 'scale-95'); p1.classList.add('scale-105', 'ring-2', 'ring-rose-400');
+                p0.classList.add('opacity-50', 'scale-95'); p0.classList.remove('scale-105', 'ring-2', 'ring-emerald-400');
+                document.getElementById('tyc-turn-indicator').textContent = "Omega's Turn";
+                document.getElementById('tyc-turn-indicator').className = "text-3xl font-display text-rose-400 mb-2 tracking-widest uppercase drop-shadow-md";
+            }
+
+            // Visual Update for Owned Properties
+            tycoonSpaces.forEach(sp => {
+                if(sp.type === 'prop' && sp.owner !== null) {
+                    const el = document.getElementById(`tyc-space-${sp.id}`);
+                    const ownerBannerId = `owner-banner-${sp.id}`;
+                    let banner = document.getElementById(ownerBannerId);
+                    
+                    if (!banner) {
+                        banner = document.createElement('div');
+                        banner.id = ownerBannerId;
+                        el.appendChild(banner);
+                    }
+
+                    if(sp.owner === 0) {
+                        el.style.borderColor = '#10b981';
+                        el.style.borderWidth = '3px';
+                        banner.textContent = "ALPHA";
+                        banner.className = "absolute -top-3 left-1/2 transform -translate-x-1/2 text-[9px] font-bold px-2 py-0.5 rounded-sm text-white shadow-md z-10 bg-emerald-600 animate-pop-in whitespace-nowrap";
+                    } else if (sp.owner === 1) {
+                        el.style.borderColor = '#e11d48';
+                        el.style.borderWidth = '3px';
+                        banner.textContent = "OMEGA";
+                        banner.className = "absolute -top-3 left-1/2 transform -translate-x-1/2 text-[9px] font-bold px-2 py-0.5 rounded-sm text-white shadow-md z-10 bg-rose-600 animate-pop-in whitespace-nowrap";
+                    }
+                }
+            });
+        }
+
+        function rollTycoonDice() {
+            const btn = document.getElementById('tyc-roll-btn');
+            const display = document.getElementById('tyc-dice-display');
+            btn.disabled = true;
+            btn.classList.add('opacity-50');
+            
+            display.classList.add('dice-roll-anim');
+            
+            let roll = 0;
+            let shuffleInt = setInterval(() => {
+                display.textContent = Math.floor(Math.random() * 6) + 1;
+            }, 50);
+
+            setTimeout(() => {
+                clearInterval(shuffleInt);
+                display.classList.remove('dice-roll-anim');
+                roll = Math.floor(Math.random() * 5) + 1; 
+                display.textContent = roll;
+                document.getElementById('tyc-status-text').textContent = `Rolled a ${roll}! moving...`;
+                
+                processMove(roll);
+            }, 600);
+        }
+
+        function moveTokenVisually(playerIdx, spaceId) {
+            const spaceEl = document.getElementById(`tyc-space-${spaceId}`);
+            const tokenEl = tycPlayers[playerIdx].tokenObj;
+            if(!spaceEl || !tokenEl) return;
+
+            const rect = spaceEl.getBoundingClientRect();
+            const boardRect = document.getElementById('tycoon-board-grid').getBoundingClientRect();
+            
+            let x = rect.left - boardRect.left + (rect.width / 2) - 22; 
+            let y = rect.top - boardRect.top + (rect.height / 2) - 22;
+            
+            if (playerIdx === 0) { x -= 12; y -= 12; }
+            else { x += 12; y += 12; }
+
+            tokenEl.style.transform = `translate(${x}px, ${y}px)`;
+        }
+
+        function processMove(roll) {
+            let p = tycPlayers[tycTurn];
+            let targetPos = (p.pos + roll) % 20;
+            
+            if (p.pos + roll >= 20) {
+                p.money += 200;
+                document.getElementById('tyc-status-text').textContent = `Passed FRONT DOOR! Collected $200 Salary.`;
+                updateTycoonUI();
+            }
+
+            p.pos = targetPos;
+            moveTokenVisually(tycTurn, targetPos);
+
+            setTimeout(() => {
+                resolveTycoonSpace(targetPos);
+            }, 600);
+        }
+
+        function resolveTycoonSpace(spaceId) {
+            const space = tycoonSpaces[spaceId];
+            activeSpaceId = spaceId;
+            
+            if (space.type === 'prop') {
+                if (space.owner === null) {
+                    showTycoonBuyPrompt(space, spaceId);
+                } else if (space.owner === tycTurn) {
+                    showTycoonNotice("Your Property", "You already own the " + space.name + ". Enjoy the view.", 0);
+                } else {
+                    let rent = space.rent || 100;
+                    tycPlayers[tycTurn].money -= rent;
+                    tycPlayers[space.owner].money += rent;
+                    let ownerName = space.owner === 0 ? "Team Alpha" : "Team Omega";
+                    showTycoonNotice("Rent Due!", `This property belongs to ${ownerName}. You paid them $${rent} to visit.`, 0);
+                }
+            } else if (space.type === 'chance') {
+                showTycoonChanceModal();
+            } else if (space.type === 'tax') {
+                showTycoonNotice("Property Taxes", "You must pay your local taxes. Lose $100.", -100);
+            } else if (space.type === 'penalty') {
+                if(spaceId === 5) showTycoonNotice("Leaky Roof!", "You have severe water damage! Pay $150 for repairs.", -150);
+                else showTycoonNotice("Eviction Notice!", "You broke the lease terms. Pay $150 in legal fees.", -150);
+            } else if (space.type === 'bonus') {
+                showTycoonNotice("Inheritance!", "A wealthy relative left you some money! Collect a $200 bonus!", 200);
+            } else if (space.type === 'corner' && spaceId === 0) {
+                showTycoonNotice("Front Door", "You landed exactly on the FRONT DOOR. Collect an extra $100!", 100);
+            }
+        }
+
+        function showTycoonBuyPrompt(space, spaceId) {
+            const cost = space.cost || 100;
+            const rent = space.rent || 50;
+            
+            if (tycPlayers[tycTurn].money < cost) {
+                showTycoonNotice("Insufficient Funds", `You need $${cost} to acquire this property. You must pass.`, 0);
+                return;
+            }
+
+            document.getElementById('tyc-modal-header').textContent = `Real Estate Opportunity`;
+            document.getElementById('tyc-modal-title').textContent = space.name;
+            document.getElementById('tyc-modal-desc').innerHTML = `This property is currently unowned. Would you like to buy it?<br><br><span class="text-cyan-400 font-bold">Cost: $${cost}</span><br><span class="text-emerald-400 font-bold">Earns Rent: $${rent}</span><br><br><span class="text-sm italic text-slate-300">If you choose to buy it, you must answer a vocabulary question correctly. Wrong answers incur a $50 penalty!</span>`;
+            
+            document.getElementById('tyc-options-area').classList.add('hidden');
+            
+            const actionArea = document.getElementById('tyc-action-area');
+            actionArea.innerHTML = `
+                <div class="flex gap-4 justify-center">
+                    <button onclick="showTycoonQuizModal()" class="bg-emerald-600 hover:bg-emerald-500 text-white font-bold py-4 px-8 rounded-xl transition text-lg shadow-[0_4px_0_#065f46] flex-1 font-display tracking-widest">Sign Papers</button>
+                    <button onclick="closeTycoonModal()" class="bg-slate-700 hover:bg-slate-600 text-white font-bold py-4 px-8 rounded-xl transition text-lg shadow-[0_4px_0_#334155] flex-1 font-display tracking-widest">Pass (Save Cash)</button>
+                </div>
+            `;
+            actionArea.classList.remove('hidden');
+            
+            document.getElementById('tyc-modal').classList.remove('hidden');
+        }
+
+        function showTycoonQuizModal() {
+            if (tycDeckQ.length === 0) tycDeckQ = shuffleArray([...tycoonQuiz]);
+            const q = tycDeckQ.pop();
+            const spaceId = activeSpaceId;
+            const space = tycoonSpaces[spaceId];
+            
+            document.getElementById('tyc-modal-header').textContent = `Authentication: ${space.name}`;
+            document.getElementById('tyc-modal-title').textContent = "Design Challenge";
+            document.getElementById('tyc-modal-desc').textContent = `"${q.q}"`;
+            
+            const optArea = document.getElementById('tyc-options-area');
+            optArea.innerHTML = '';
+            optArea.classList.remove('hidden');
+            document.getElementById('tyc-action-area').classList.add('hidden');
+            
+            q.opts.forEach((optText, index) => {
+                const btn = document.createElement('button');
+                btn.className = "bg-slate-800 hover:bg-slate-700 text-white font-bold py-4 px-6 rounded-xl border border-slate-600 transition text-lg shadow-md font-display tracking-wide";
+                btn.textContent = optText;
+                btn.onclick = () => handleTycoonQuizAnswer(index === q.a, btn, optArea, spaceId);
+                optArea.appendChild(btn);
+            });
+            
+            document.getElementById('tyc-modal').classList.remove('hidden');
+        }
+
+        function handleTycoonQuizAnswer(isCorrect, btnElement, container, spaceId) {
+            Array.from(container.children).forEach(b => b.disabled = true);
+            const space = tycoonSpaces[spaceId];
+            const cost = space.cost || 100;
+            const rent = space.rent || 50;
+            
+            if(isCorrect) {
+                btnElement.classList.replace('bg-slate-800', 'bg-emerald-600');
+                btnElement.classList.replace('border-slate-600', 'border-emerald-400');
+                
+                tycPlayers[tycTurn].money -= cost;
+                tycoonSpaces[spaceId].owner = tycTurn;
+                
+                let teamColor = tycTurn === 0 ? "text-emerald-400" : "text-rose-400";
+                document.getElementById('tyc-modal-title').innerHTML = `<span class="${teamColor}">Property Acquired!</span>`;
+                document.getElementById('tyc-modal-desc').innerHTML = `Brilliant! You spent $${cost} and acquired the <strong>${space.name}</strong>. Rivals will now pay you $${rent} when they land here!`;
+            } else {
+                btnElement.classList.replace('bg-slate-800', 'bg-rose-800');
+                btnElement.classList.add('animate-shake');
+                
+                tycPlayers[tycTurn].money -= 50;
+                document.getElementById('tyc-modal-title').textContent = "Rejected!";
+                document.getElementById('tyc-modal-desc').textContent = "Incorrect! The bank rejected your offer. You lost $50 in wasted legal fees and the property remains uncontrolled.";
+            }
+            
+            updateTycoonUI();
+            checkBankruptcy();
+            
+            setTimeout(() => {
+                container.classList.add('hidden');
+                document.getElementById('tyc-action-area').innerHTML = `
+                    <button onclick="closeTycoonModal()" class="bg-cyan-600 hover:bg-cyan-500 text-slate-900 font-bold py-4 px-10 rounded-xl transition text-xl shadow-[0_4px_0_#0284c7] w-full max-w-sm mx-auto uppercase tracking-widest font-display">Continue</button>
+                `;
+                document.getElementById('tyc-action-area').classList.remove('hidden');
+            }, 1500); 
+        }
+
+        function showTycoonChanceModal() {
+            if (tycDeckC.length === 0) tycDeckC = shuffleArray([...tycoonChance]);
+            const card = tycDeckC.pop();
+            showTycoonNotice(card.title, card.desc, card.change);
+        }
+
+        function showTycoonNotice(title, desc, moneyChange) {
+            document.getElementById('tyc-modal-header').textContent = "Color Psychology!";
+            document.getElementById('tyc-modal-title').textContent = title;
+            document.getElementById('tyc-modal-desc').textContent = desc;
+            
+            document.getElementById('tyc-options-area').classList.add('hidden');
+            document.getElementById('tyc-action-area').innerHTML = `
+                <button onclick="closeTycoonModal()" class="bg-cyan-600 hover:bg-cyan-500 text-slate-900 font-bold py-4 px-10 rounded-xl transition text-xl shadow-[0_4px_0_#0284c7] w-full max-w-sm mx-auto uppercase tracking-widest font-display">Continue</button>
+            `;
+            document.getElementById('tyc-action-area').classList.remove('hidden');
+            
+            tycPlayers[tycTurn].money += moneyChange;
+            updateTycoonUI();
+            checkBankruptcy();
+            
+            document.getElementById('tyc-modal').classList.remove('hidden');
+        }
+
+        function checkBankruptcy() {
+            if (tycPlayers[0].money < 0) {
+                setTimeout(() => endGame("Game Over! Team Omega bankrupts Team Alpha!"), 2000);
+            } else if (tycPlayers[1].money < 0) {
+                setTimeout(() => endGame("Game Over! Team Alpha bankrupts Team Omega!"), 2000);
+            }
+        }
+
+        function closeTycoonModal() {
+            document.getElementById('tyc-modal').classList.add('hidden');
+            activeSpaceId = null;
+            
+            tycTurn = tycTurn === 0 ? 1 : 0;
+            updateTycoonUI();
+            
+            const btn = document.getElementById('tyc-roll-btn');
+            btn.disabled = false;
+            btn.classList.remove('opacity-50');
+            document.getElementById('tyc-status-text').textContent = "Ready to roll.";
+        }
+
+    </script>
+</body>
+</html>
